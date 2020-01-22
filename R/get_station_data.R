@@ -48,7 +48,7 @@
 #'
 #'
 #' @export
-get_station_data <- function(stations, source, elem = c("SNWD", "WESD")){
+get_station_data <- function(stations, source, elem = c("SNWD", "WESD"), progress = TRUE){
   # Set constants
   #=============================================================================
   files <- paste0(source, stations, ".dly")
@@ -106,7 +106,10 @@ get_station_data <- function(stations, source, elem = c("SNWD", "WESD")){
   # Extract data for each station in station vector
   #=============================================================================
   data_list <- vector("list", length(files))
-
+  # Create a progress bar for the data download if requested. (utils package)
+  if(progress){
+  pb <- txtProgressBar(min = 0, max = length(files), style = 3)
+  }
   for (i in 1:length(files)) {
     # Read the lines from the FTP file
     dly <- try(readLines(files[i]), silent = TRUE)
@@ -137,6 +140,10 @@ get_station_data <- function(stations, source, elem = c("SNWD", "WESD")){
     if (nrow(data_list[[i]]) == 0) {
       data_list[[i]] <- NULL
     }
+
+    if(progress){
+      setTxtProgressBar(pb, i)
+    }
   }
 
   # Combine into single data.frame and remove missing values
@@ -160,9 +167,10 @@ get_station_data <- function(stations, source, elem = c("SNWD", "WESD")){
 #' @param states A vector of states, see the internal data set ghcnd_stations
 #'   for valid states and associated stations.
 #' @export
-get_state_data <- function(states, source, elem = c("SNWD", "WESD")) {
+get_state_data <- function(states, source, elem = c("SNWD", "WESD"), progress = TRUE) {
+  ghcnd_stations <- snowload2::ghcnd_stations
   stations <- ghcnd_stations$ID[ghcnd_stations$STATE %in% states]
-  get_station_data(stations, source, elem)
+  get_station_data(stations, source, elem, progress)
 }
 
 
