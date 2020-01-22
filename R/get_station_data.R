@@ -19,6 +19,8 @@
 #'   ("SNWD") and water depth equivalent of snowfall in mm ("WESD"). For other
 #'   climate variables see section three of
 #'   ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt.
+#' @param progress If true, a text progress bar is printed to the console.
+#'   Only relevant when more than one station is requested.
 #'
 #' @return A data.frame where each row is a measurement of a climate variable
 #'   in elem for a single day and station. Columns are:
