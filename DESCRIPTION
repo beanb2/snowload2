@@ -11,6 +11,6 @@ Description: This package will serve as the repository for the functions used to
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
-Imports: dplyr
+Imports: dplyr, fields, stats
 Depends: R (>= 3.6.0)
 RoxygenNote: 7.0.2
