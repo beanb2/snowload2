@@ -27,7 +27,7 @@
 #' cluster_stations(subset$LONGITUDE, subset$LATITUDE, subset$ELEVATION,
 #'                  dist_adj = 4, elev_adj = 50, h = 2)
 #'
-#' Practical use example
+#' # Practical use example
 #' library(dplyr)
 #' cluster_test <- snowload2::ghcnd_stations %>%
 #'   filter(STATE %in% c("UT", "NV")) %>%

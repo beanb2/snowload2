@@ -56,7 +56,7 @@ A data.frame where each row is a measurement of a climate variable
 }
 \description{
 These functions are designed to take NOAA weather data organized in .dly
-format,extract snow depth, WESD, or other climate information, and return
+format, extract snow depth, WESD, or other climate information, and return
 a neatly organized data frame.
 }
 \section{Functions}{
@@ -71,7 +71,10 @@ data source ghcnd_stations with corresponding state(s).
 
 \examples{
 get_station_data(ghcnd_stations$ID[10000],
-               "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
+                 "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
 
 
+}
+\seealso{
+\code{\link{get_year_data}} - get data by year.
 }

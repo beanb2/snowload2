@@ -1,7 +1,7 @@
 #' Organize .dly weather data downloaded from the web.
 #'
 #' These functions are designed to take NOAA weather data organized in .dly
-#' format,extract snow depth, WESD, or other climate information, and return
+#' format, extract snow depth, WESD, or other climate information, and return
 #' a neatly organized data frame.
 #'
 #' @describeIn get_station_data Uses station identification codes to gather
@@ -44,9 +44,12 @@
 #'     a description of the flag.}
 #'   }
 #'
+#' @seealso
+#'   \code{\link{get_year_data}} - get data by year.
+#'
 #' @examples
 #' get_station_data(ghcnd_stations$ID[10000],
-#'                "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
+#'                  "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
 #'
 #'
 #' @export
