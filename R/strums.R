@@ -4,6 +4,7 @@
 # Author: Jesse Wheeler
 
 strums <- function(snow_depth, date, climate) {
+  # Returns g/cm^3, expects inputs of cm
 
   VALUE = snow_depth
   DOYA = date
