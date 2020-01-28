@@ -14,6 +14,10 @@ clean_station_data(station_data, clean = "all")
 \item{clean}{A character vector describing what cleaning steps to take.
 Default "all" will perform all cleaning steps.
 \describe{
+  \item{}{\emph{"mpzero"} - Removes all rows with measurement flag of "P":
+  missing, presumed zero.
+  See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
+  for a description of the flag.}
   \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
   See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
   for a description of the flag.}

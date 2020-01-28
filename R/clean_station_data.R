@@ -10,6 +10,10 @@
 #' @param clean A character vector describing what cleaning steps to take.
 #'   Default "all" will perform all cleaning steps.
 #'   \describe{
+#'     \item{}{\emph{"mpzero"} - Removes all rows with measurement flag of "P":
+#'     missing, presumed zero.
+#'     See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
+#'     for a description of the flag.}
 #'     \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
 #'     See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
 #'     for a description of the flag.}
@@ -50,8 +54,11 @@ clean_station_data <- function(station_data, clean = "all") {
   # Quality flag removal
   #=============================================================================
   if (clean == "all" || "qflag" %in% clean) {
-    print("here")
     station_data <- dplyr::filter(station_data, QFLAG %in% c("", " ", NA))
+  }
+
+  if (clean == "all" || "mpzero" %in% clean) {
+    station_data <- dplyr::filter(station_data, MFLAG != "P")
   }
 
   return(station_data)
