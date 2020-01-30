@@ -5,9 +5,9 @@
 \alias{get_state_data}
 \title{Organize .dly weather data downloaded from the web.}
 \usage{
-get_station_data(stations, source, elem = c("SNWD", "WESD"))
+get_station_data(stations, source, elem = c("SNWD", "WESD"), progress = TRUE)
 
-get_state_data(states, source, elem = c("SNWD", "WESD"))
+get_state_data(states, source, elem = c("SNWD", "WESD"), progress = TRUE)
 }
 \arguments{
 \item{stations}{A vector of station identification codes. See the internal
@@ -24,6 +24,9 @@ all extracted .dly files as the source.}
 ("SNWD") and water depth equivalent of snowfall in mm ("WESD"). For other
 climate variables see section three of
 ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt.}
+
+\item{progress}{If true, a text progress bar is printed to the console.
+Only relevant when more than one station is requested.}
 
 \item{states}{A vector of states, see the internal data set ghcnd_stations
 for valid states and associated stations.}
@@ -53,7 +56,7 @@ A data.frame where each row is a measurement of a climate variable
 }
 \description{
 These functions are designed to take NOAA weather data organized in .dly
-format,extract snow depth, WESD, or other climate information, and return
+format, extract snow depth, WESD, or other climate information, and return
 a neatly organized data frame.
 }
 \section{Functions}{
@@ -68,7 +71,10 @@ data source ghcnd_stations with corresponding state(s).
 
 \examples{
 get_station_data(ghcnd_stations$ID[10000],
-               "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
+                 "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/")
 
 
+}
+\seealso{
+\code{\link{get_year_data}} - get data by year.
 }
