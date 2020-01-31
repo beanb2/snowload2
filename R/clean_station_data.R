@@ -50,15 +50,17 @@
 #'
 #'
 #' @export
-clean_station_data <- function(station_data, clean = "all") {
-  # Quality flag removal
+clean_station_data <- function(station_data, clean = "all", report = FALSE) {
+  # Missing presumed zero flag removal
   #=============================================================================
-  if (clean == "all" || "qflag" %in% clean) {
-    station_data <- dplyr::filter(station_data, QFLAG %in% c("", " ", NA))
+  if ("mpzero" %in% clean) {
+    station_data <- dplyr::filter(station_data, MFLAG != "P" | is.na(MFLAG))
   }
 
-  if (clean == "all" || "mpzero" %in% clean) {
-    station_data <- dplyr::filter(station_data, MFLAG != "P")
+  # Quality flag removal
+  #=============================================================================
+  if ("qflag" %in% clean) {
+    station_data <- dplyr::filter(station_data, QFLAG %in% c("", " ", NA))
   }
 
   return(station_data)

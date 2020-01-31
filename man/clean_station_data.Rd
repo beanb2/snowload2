@@ -4,7 +4,7 @@
 \alias{clean_station_data}
 \title{Quality control function for removing rows from station data.}
 \usage{
-clean_station_data(station_data, clean = "all")
+clean_station_data(station_data, clean = "all", report = FALSE)
 }
 \arguments{
 \item{station_data}{A data.frame in the format returned by the functions
