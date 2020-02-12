@@ -2,6 +2,7 @@
 
 export(clean_station_data)
 export(cluster_stations)
+export(download_all_stations)
 export(get_state_data)
 export(get_station_data)
 export(get_year_data)

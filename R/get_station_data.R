@@ -11,10 +11,8 @@
 #'   data set ghcnd_stations for station id's and descriptions.
 #' @param source If downloading from the web, source should be
 #'   "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/all/". For loading many
-#'   stations/states it is faster to download
-#'   ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd_all.tar.gz (~3GB),
-#'   extract all files (~30GB), then use the file path to the folder with
-#'   all extracted .dly files as the source.
+#'   stations/states it is faster to use \code{\link{get_year_data}} (~30GB),
+#'   then use the file path to the resulting folder ghcnd_all as the source.
 #' @param elem The climate variables to extract. Default is snow depth in mm
 #'   ("SNWD") and water depth equivalent of snowfall in mm ("WESD"). For other
 #'   climate variables see section three of
@@ -46,6 +44,8 @@
 #'
 #' @seealso
 #'   \code{\link{get_year_data}} - get data by year.
+#'
+#'   \code{\link{download_all_stations}} - download all available .dly data.
 #'
 #' @examples
 #' get_station_data(ghcnd_stations$ID[10000],
