@@ -42,6 +42,13 @@
 #'
 #' @export
 cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
+  if (length(lon) != length(lat) || length(lon) != length(elev)) {
+    stop("Lengths of lon, lat, and elev must be the same.")
+  }
+  if (!is.numeric(lon) || !is.numeric(lat) || !is.numeric(elev)) {
+    stop("Vectors lon, lat, and elev must be numeric.")
+  }
+
   # Find similarity matrix
   #=============================================================================
   # find distances between all locations in miles
@@ -58,7 +65,11 @@ cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
   # Cluster and return cluster vector
   #=============================================================================
   # Cluster all stations with the farthest neighbors in a cluster
-  clust <- stats::hclust(similarity, method = "complete")
+  if (length(lon) > 1) {
+    clust <- stats::hclust(similarity, method = "complete")
+  } else if (length(lon) == 1) {
+    return(1)
+  } else return(NULL)
 
   # Cut heirarchical clustering tree at h and return cluster id's
   stats::cutree(clust, h = h)
