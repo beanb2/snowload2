@@ -15,8 +15,6 @@
 #' @seealso
 #'   \code{\link{get_station_data}} - get data by station.
 #'
-#'   \code{\link{get_state_data}} - get data by state.
-#'
 #' @export
 download_all_stations <- function(directory = ".") {
   # Set file locations and names

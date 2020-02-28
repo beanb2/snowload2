@@ -23,6 +23,4 @@ using the downloaded folder as the "source" instead of the web source.
 }
 \seealso{
 \code{\link{get_station_data}} - get data by station.
-
-  \code{\link{get_state_data}} - get data by state.
 }
