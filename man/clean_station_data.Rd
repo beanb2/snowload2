@@ -55,6 +55,4 @@ data gathered from the functions \code{\link{get_station_data}},
 \code{\link{get_year_data}} - get data by year.
 
   \code{\link{get_station_data}} - get data by station.
-
-  \code{\link{get_state_data}} - get data by state.
 }

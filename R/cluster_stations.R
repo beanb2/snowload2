@@ -48,6 +48,9 @@ cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
   if (!is.numeric(lon) || !is.numeric(lat) || !is.numeric(elev)) {
     stop("Vectors lon, lat, and elev must be numeric.")
   }
+  if (any(is.na(elev)) || any(is.na(lon)) || any(is.na(lat))) {
+    stop("All elev, lon, and lat not have NA values.")
+  }
 
   # Find similarity matrix
   #=============================================================================

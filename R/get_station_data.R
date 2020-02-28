@@ -40,6 +40,8 @@
 #'     \item{}{\emph{SFLAG} - A source flag. See
 #'     ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3  for
 #'     a description of the flag.}
+#'     \item{}\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
+#'     is located.
 #'   }
 #'
 #' @seealso
@@ -166,6 +168,7 @@ get_station_data <- function(stations, source, elem = c("SNWD", "WESD"), progres
 }
 
 
+
 #' @describeIn get_station_data Wrapper for get_station_data that extracts all
 #'   station data for a given state(s) by passing all stations from internal
 #'   data source ghcnd_stations with corresponding state(s).
@@ -180,8 +183,25 @@ get_state_data <- function(states, source, elem = c("SNWD", "WESD"), progress = 
 
 
 
+#' @describeIn get_station_data Wrapper for get_station_data that extracts all
+#'   station data for a given eco region(s) by passing all stations from internal
+#'   data source ghcnd_stations with corresponding eco region(s).
+#' @param eco_regions A vector of eco_regions, see the internal data set
+#'   ghcnd_stations for valid eco_regions and associated stations. eco_regions
+#'   can be either level 3 eco regions (e.g. "8.2.4"), level 2 regions
+#'   (e.g. "8.2"), or level 1 regions (e.g. "8").
+#' @export
+get_region_data <- function(eco_regions, source, elem = c("SNWD", "WESD"), progress = TRUE) {
+  # Change eco_regions to search for any given level 1, 2, or 3 vaules
+  level1or2 <- suppressWarnings(!is.na(as.numeric(eco_regions)))
+  eco_regions[level1or2] <- paste0(eco_regions[level1or2], "\\.")
+  eco_regions <- paste0("^", eco_regions, collapse = "|")
 
-
+  # Get stations
+  ghcnd_stations <- snowload2::ghcnd_stations
+  stations <- ghcnd_stations$ID[grepl(eco_regions, ghcnd_stations$ECO3)]
+  get_station_data(stations, source, elem, progress)
+}
 
 
 

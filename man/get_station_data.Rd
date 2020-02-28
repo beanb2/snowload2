@@ -3,11 +3,14 @@
 \name{get_station_data}
 \alias{get_station_data}
 \alias{get_state_data}
+\alias{get_region_data}
 \title{Organize .dly weather data downloaded from the web.}
 \usage{
 get_station_data(stations, source, elem = c("SNWD", "WESD"), progress = TRUE)
 
 get_state_data(states, source, elem = c("SNWD", "WESD"), progress = TRUE)
+
+get_region_data(eco_regions, source, elem = c("SNWD", "WESD"), progress = TRUE)
 }
 \arguments{
 \item{stations}{A vector of station identification codes. See the internal
@@ -28,6 +31,11 @@ Only relevant when more than one station is requested.}
 
 \item{states}{A vector of states, see the internal data set ghcnd_stations
 for valid states and associated stations.}
+
+\item{eco_regions}{A vector of eco_regions, see the internal data set
+ghcnd_stations for valid eco_regions and associated stations. eco_regions
+can be either level 3 eco regions (e.g. "8.2.4"), level 2 regions
+(e.g. "8.2"), or level 1 regions (e.g. "8").}
 }
 \value{
 A data.frame where each row is a measurement of a climate variable
@@ -50,6 +58,8 @@ A data.frame where each row is a measurement of a climate variable
     \item{}{\emph{SFLAG} - A source flag. See
     ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3  for
     a description of the flag.}
+    \item{}\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
+    is located.
   }
 }
 \description{
@@ -65,6 +75,10 @@ data from the proper .dly files.
 \item \code{get_state_data}: Wrapper for get_station_data that extracts all
 station data for a given state(s) by passing all stations from internal
 data source ghcnd_stations with corresponding state(s).
+
+\item \code{get_region_data}: Wrapper for get_station_data that extracts all
+station data for a given eco region(s) by passing all stations from internal
+data source ghcnd_stations with corresponding eco region(s).
 }}
 
 \examples{

@@ -46,8 +46,6 @@
 #'
 #'   \code{\link{get_station_data}} - get data by station.
 #'
-#'   \code{\link{get_state_data}} - get data by state.
-#'
 #'
 #' @export
 clean_station_data <- function(station_data, clean = "all", report = FALSE) {

@@ -412,23 +412,58 @@ mle50 = function(x, pcnt = 0.98, dbn = "lnorm", method = "mle", fplot = FALSE){
 
 library(tidyverse)
 
-# Step 2 - Download Data From the Web. (TAKES FOREVER TO RUN)
-#dir <- "C:/Users/Jadon Wagstaff/Documents"
-#snowload2::download_all_stations(dir)
-source <- "C:/Users/Jadon Wagstaff/Documents/ghcnd_all/"
 
-
-
-# Step 3 - Cluster stations
+# Cluster stations
 stations <- snowload2::ghcnd_stations %>%
-  dplyr::group_by(STATE) %>%
+  dplyr::filter(!is.na(ELEVATION)) %>%
+  dplyr::group_by(ECO3) %>%
   dplyr::mutate(
     CLUST = snowload2::cluster_stations(LONGITUDE, LATITUDE, ELEVATION,
                                         dist_adj = 1, elev_adj = 10, h = 2)
   ) %>%
   dplyr::ungroup() %>%
-  dplyr::mutate(CLUST = sprintf(paste0(STATE, "%04d"), CLUST))
-states <- unique(stations$STATE)
+  dplyr::mutate(CLUST = sprintf(paste0(ECO3, ".%04d"), CLUST))
+
+
+# Download and clean data
+source <- "C:/Users/Jadon Wagstaff/Documents/Snowload/ghcnd_all/"
+
+station_data <- snowload2::get_region_data("6.2.13", source) %>% # Utah mountains
+  snowload2::clean_station_data() %>%
+  dplyr::left_join(stations %>% dplyr::select(ID, CLUST))
+
+
+# Need a depth to load conversion function here
+# TODO
+
+
+
+# Yearly maximums
+station_ym <- station_data %>%
+  snowload2::yearly_maximums(id = CLUST, date = DATE, value = VALUE)
+
+
+# fit distributions
+station_dist <- station_ym %>%
+  snowload2::fit_dist(id = CLUST, values = MAX, distr = "lnorm")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # DATA CLEAN
 #=============================================================================
