@@ -59,5 +59,8 @@
 #'  station. If the station has no WMO number (or one has not yet been
 #'  matched to this station), then the field is blank.}
 #'  }
+#'  \item{ECO3}{Identifier for the EPA level 3 ecoregion where the station
+#'  is located.}
+#'  }
 "ghcnd_stations"
 

@@ -37,7 +37,7 @@ yearly_maximums <- function(station_data, id, date, value) {
   station_data <- dplyr::mutate(
     station_data,
     YEAR = as.numeric(lubridate::year(!! date)),
-    YEAR = if_else(lubridate::month(!! date) > 9, YEAR, YEAR + 1)
+    YEAR = dplyr::if_else(lubridate::month(!! date) > 9, YEAR, YEAR + 1)
   )
 
   station_data <- dplyr::group_by(station_data, !! id, YEAR)
