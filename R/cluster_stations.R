@@ -4,19 +4,22 @@
 #' score of h between furthest stations in a cluster. dist_adj can be used to
 #' scale distances between stations and elev_adj can be used to scale elevation
 #' between stations. For example, distance can be scaled so that dist_adj = 4
-#' miles is a one unit similarity between stations and elevation can be scaled
+#' km is a one unit similarity between stations and elevation can be scaled
 #' so that elev_adj = 50 is a one unit similarity between stations. Then two
-#' stations that are separated by 4 miles and have a difference of 50 units of
+#' stations that are separated by 4 km and have a difference of 50 units of
 #' elevation have a total similarity score of 2. h is used to specify a maximum
 #' similarity score between stations in a cluster.
 #'
 #' @param lon A numeric vector of station longitudes.
 #' @param lat A numeric vector of station latitudes.
 #' @param elev A numeric vector of station elevations.
-#' @param dist_adj Constant value in miles that scales the dissimilarity score
+#' @param dist_adj Constant value in km that scales the dissimilarity score
 #' for geographic distance.
 #' @param elev_adj Constant value that scales elevation dissimilarity.
 #' @param h Maximum similarity score for the cluster analysis.
+#' @param method stats::hclust method for clustering. One of "ward.D",
+#' "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA),
+#' "median" (= WPGMC) or "centroid" (= UPGMC).
 #'
 #' @return A numeric vector of clusters, where each unique number represents a
 #' cluster.
@@ -41,7 +44,8 @@
 #'
 #'
 #' @export
-cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
+cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h,
+                             method = "complete") {
   if (length(lon) != length(lat) || length(lon) != length(elev)) {
     stop("Lengths of lon, lat, and elev must be the same.")
   }
@@ -54,8 +58,8 @@ cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
 
   # Find similarity matrix
   #=============================================================================
-  # find distances between all locations in miles
-  dist <- fields::rdist.earth(matrix(c(lon, lat), ncol = 2))
+  # find distances between all locations in km
+  dist <- fields::rdist.earth(matrix(c(lon, lat), ncol = 2, miles = FALSE))
 
   # find difference in elevation between all locations
   delev <- abs(outer(elev, elev, "-"))
@@ -69,7 +73,7 @@ cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h) {
   #=============================================================================
   # Cluster all stations with the farthest neighbors in a cluster
   if (length(lon) > 1) {
-    clust <- stats::hclust(similarity, method = "complete")
+    clust <- stats::hclust(similarity, method)
   } else if (length(lon) == 1) {
     return(1)
   } else return(NULL)
