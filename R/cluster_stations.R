@@ -59,7 +59,7 @@ cluster_stations <- function(lon, lat, elev, dist_adj, elev_adj, h,
   # Find similarity matrix
   #=============================================================================
   # find distances between all locations in km
-  dist <- fields::rdist.earth(matrix(c(lon, lat), ncol = 2, miles = FALSE))
+  dist <- fields::rdist.earth(matrix(c(lon, lat), ncol = 2), miles = FALSE)
 
   # find difference in elevation between all locations
   delev <- abs(outer(elev, elev, "-"))
