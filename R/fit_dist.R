@@ -11,7 +11,13 @@
 #' @param distr A distribution for fitting the data. Must be one of "lnorm" (log
 #'   normal), "gamma", "gumbel", or "gev" (generalized extreme value).
 #' @param method Method "mle" (maximum likelihood) will work for any
-#' distribution. Method "lmoments" will only work with "gev" distribution.
+#' distribution. Method "mme" (moment matching) will work with "lnorm" and
+#' "gamma" distributions.
+#' Method "lmoments" will only work with "gev" distribution.
+#' Method "regression" will only work with "lnorm" distribution.
+#' @param tail Proportion of data to use when fitting from 0 to 1. If .33 is
+#' chosen, then only the upper third of the data will be used for fitting.
+#' Only applies to "regression" method.
 #'
 #' @return A data.frame where each row is a maximum for a given id and year:
 #'   \describe{
@@ -38,7 +44,7 @@
 #'
 #'
 #' @export
-fit_dist <- function(station_data, id, values, distr, method = "mle") {
+fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) {
   # Prepare column names and prepare data
   #=============================================================================
   id <- dplyr::enquo(id)
@@ -51,11 +57,25 @@ fit_dist <- function(station_data, id, values, distr, method = "mle") {
   #=============================================================================
   if (distr == "lnorm") {
     # Log normal
-    if (method == "mle") {
+    if (method %in% c("mle", "mme")) {
       fit <- function(x) {
-        fitdistrplus::fitdist(x, distr = "lnorm", method = "mle",
+        fitdistrplus::fitdist(x, distr = "lnorm", method = method,
                               keepdata = FALSE)$estimate
       }
+    } else if (method == "regression") {
+      fit <- function(x) {
+        n <- length(x)
+        keep <- 1:n > (1 - use) * n & sort(x) > 0
+        x <- sort(log(x))
+        if (n > 10) {
+          q <- stats::qnorm((1:n - 0.5) / n)
+        } else {
+          q <- stats::qnorm((1:n - 3/8) / (n + 1/4))
+        }
+        model <- stats::lm(q[keep] ~ x[keep])$coefficients
+        c(mean = -1 * model[1] / model[2], sd = 1 / model[2])
+      }
+
     } else error("No method", method, "for distr", distr)
 
     q_function <- function(p, par1, par2) {
@@ -64,9 +84,9 @@ fit_dist <- function(station_data, id, values, distr, method = "mle") {
 
   } else if (distr == "gamma") {
     # Gamma
-    if (method == "mle") {
+    if (method %in% c("mle", "mme")) {
       fit <- function(x) {
-        fitdistrplus::fitdist(x, distr = "gamma", method = "mle",
+        fitdistrplus::fitdist(x, distr = "gamma", method = method,
                               keepdata = FALSE)$estimate
       }
     } else error("No method", method, "for distr", distr)
