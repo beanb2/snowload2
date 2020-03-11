@@ -5,17 +5,32 @@
 #' October 1 and ends September 30. The year is the calender year in which the
 #' period ends.
 #'
+#' If a certain value type is to be prioritized, the value_type column should
+#' be specified along with the specific value_type(s) to prioritize (e.g.
+#' value_type = ELEMENT, prioritize = "WESD"). Values that have priority will
+#' be chosen over non-prioritized values for a given year (e.g. if the maximum
+#' value is for the year is 300 for type "SNWD" but the prioritized "WESD"
+#' has max value 250, 250 will be chosen as the maximum).
+#'
 #' @param station_data A data frame with station snow data.
 #' @param id Column containing station ID's, may include other grouping
 #'   variables.
 #' @param date Column containing the observation date.
 #' @param value Column containing the observations to maximize
+#' @param value_type Optional column containing the value types.
+#' @param prioritize Optional value_type(s) to prioritize when selecting.
+#' @param prioritize_threshold Optional named list with requirements to use
+#' the prioritized value containing \emph{n} - the minimum number of
+#' observations and \emph{months} - the minimum number of months that must have
+#' a value.
 #'
 #' @return A data.frame where each row is a maximum for a given id and year:
 #'   \describe{
 #'     \item{}{\emph{id} - Given id column and possibly other grouping columns.}
 #'     \item{}{\emph{YEAR} - The "water years" of the given dates.}
 #'     \item{}{\emph{MAX} - The maximum of the given values.}
+#'     \item{}{\emph{MAX_N} - Number of values used to find the max.}
+#'     \item{}{\emph{MAX_MONTHS} - Number of unique months with values.}
 #'   }
 #'
 #' @examples
@@ -25,23 +40,42 @@
 #'
 #'
 #' @export
-yearly_maximums <- function(station_data, id, date, value) {
+yearly_maximums <- function(station_data, id, date, value,
+                            value_type, prioritize = NULL,
+                            prioritize_threshold = list(n = 10, months = 3)) {
   # Prepare column names
   #=============================================================================
   id <- dplyr::enquo(id)
   date <- dplyr::enquo(date)
   value <- dplyr::enquo(value)
+  if (!is.null(prioritize)) value_type <- dplyr::enquo(value_type)
 
   # Find maximums
   #=============================================================================
   station_data <- dplyr::mutate(
     station_data,
+    MONTH = as.numeric(lubridate::month(!! date)),
     YEAR = as.numeric(lubridate::year(!! date)),
-    YEAR = dplyr::if_else(lubridate::month(!! date) > 9, YEAR, YEAR + 1)
+    YEAR = dplyr::if_else(MONTH > 9, YEAR, YEAR + 1)
   )
 
   station_data <- dplyr::group_by(station_data, !! id, YEAR)
 
-  dplyr::summarise(station_data, MAX = max(!! value))
+  if (!is.null(value_type) && !is.null(prioritize)) {
+    station_data <- dplyr::filter(
+      station_data,
+      dplyr::if_else(rep(sum(!! value_type %in% prioritize) >=
+                       prioritize_threshold$n &&
+                       length(unique(MONTH[!! value_type %in% prioritize])) >=
+                       prioritize_threshold$month, n()),
+                     true = !! value_type %in% prioritize,
+                     false = TRUE)
+    )
+  }
+
+  dplyr::summarise(station_data,
+                   MAX = max(!! value),
+                   MAX_N = n(),
+                   MAX_MONTHS = length(unique(MONTH)))
 }
 
