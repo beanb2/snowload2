@@ -65,7 +65,7 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
     } else if (method == "regression") {
       fit <- function(x) {
         n <- length(x)
-        keep <- 1:n > (1 - use) * n & sort(x) > 0
+        keep <- 1:n > (1 - tail) * n & sort(x) > 0
         x <- sort(log(x))
         if (n > 10) {
           q <- stats::qnorm((1:n - 0.5) / n)
