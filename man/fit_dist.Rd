@@ -35,6 +35,11 @@ A data.frame where each row is a maximum for a given id and year:
     \item{}{\emph{DISTR} - Which distribution was fit.}
     \item{}{\emph{NFIT} - Number of values used for fitting. (The number
       of values used to fit the distribution is (1 - PROP_ZERO) * NFIT.)}
+    \item{}{\emph{PROP_ZERO} - Proportion of zeros in the values used for
+      fitting.}
+    \item{}{\emph{PRIORITIZED} - Ratio of prioritized values used for fitting.
+     This column will only appear if \emph{station_data} has a logical
+     column called PRIORITIZED from \code{\link{yearly_maximums}}.}
     \item{}{\emph{PAR1} - First fitting parameter. For "lnorm": meanlog,
       "gamma": shape, "gumbel": location, and "gev": location.}
     \item{}{\emph{PAR2} - Second fitting parameter. For "lnorm": sdlog,

@@ -40,8 +40,8 @@
 #'     \item{}{\emph{SFLAG} - A source flag. See
 #'     ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3  for
 #'     a description of the flag.}
-#'     \item{}\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
-#'     is located.
+#'     \item{}{\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
+#'     is located.}
 #'   }
 #'
 #' @seealso
@@ -151,6 +151,9 @@ get_station_data <- function(stations, source, elem = c("SNWD", "WESD"), progres
     if(progress){
       setTxtProgressBar(pb, i)
     }
+  }
+  if(progress){
+    message("") # hack to start next messages on new line
   }
 
   # Combine into single data.frame and remove missing values

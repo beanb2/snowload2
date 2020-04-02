@@ -25,6 +25,11 @@
 #'     \item{}{\emph{DISTR} - Which distribution was fit.}
 #'     \item{}{\emph{NFIT} - Number of values used for fitting. (The number
 #'       of values used to fit the distribution is (1 - PROP_ZERO) * NFIT.)}
+#'     \item{}{\emph{PROP_ZERO} - Proportion of zeros in the values used for
+#'       fitting.}
+#'     \item{}{\emph{PRIORITIZED} - Ratio of prioritized values used for fitting.
+#'      This column will only appear if \emph{station_data} has a logical
+#'      column called PRIORITIZED from \code{\link{yearly_maximums}}.}
 #'     \item{}{\emph{PAR1} - First fitting parameter. For "lnorm": meanlog,
 #'       "gamma": shape, "gumbel": location, and "gev": location.}
 #'     \item{}{\emph{PAR2} - Second fitting parameter. For "lnorm": sdlog,
@@ -143,6 +148,7 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
 
   event50 <- function(par1, par2, par3, zero, f) {
     out <- rep(as.numeric(NA), length(par1))
+    out[zero == 1] <- 0
     keep <- !is.na(par1)
     if (sum(keep) == 0) {return(as.numeric(NA))}
     par1 <- par1[keep]
@@ -163,13 +169,24 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
 
   # Fit distributions
   #=============================================================================
-  station_data <- dplyr::summarise(
-    station_data,
-    DISTR = distr,
-    NFIT = sum(!is.na(!! values)),
-    PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
-    PAR1 = fit_wrap(!! values, fit)
-  )
+  if ("PRIORITIZED" %in% names(station_data)) {
+    station_data <- dplyr::summarise(
+      station_data,
+      DISTR = distr,
+      NFIT = sum(!is.na(!! values)),
+      PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
+      PRIORITIZED = sum(PRIORITIZED) / NFIT,
+      PAR1 = fit_wrap(!! values, fit)
+    )
+  } else {
+    station_data <- dplyr::summarise(
+      station_data,
+      DISTR = distr,
+      NFIT = sum(!is.na(!! values)),
+      PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
+      PAR1 = fit_wrap(!! values, fit)
+    )
+  }
   station_data <- tidyr::separate(
     station_data, col = PAR1,
     into = c("PAR1", "PAR2", "PAR3"),

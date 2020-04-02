@@ -58,8 +58,8 @@ A data.frame where each row is a measurement of a climate variable
     \item{}{\emph{SFLAG} - A source flag. See
     ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3  for
     a description of the flag.}
-    \item{}\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
-    is located.
+    \item{}{\emph{ECO3} - Identifier for the EPA level 3 ecoregion where the station
+    is located.}
   }
 }
 \description{
