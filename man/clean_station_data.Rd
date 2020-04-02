@@ -4,7 +4,15 @@
 \alias{clean_station_data}
 \title{Quality control function for removing rows from station data.}
 \usage{
-clean_station_data(station_data, clean = "all", report = FALSE)
+clean_station_data(
+  station_data,
+  clean = "all",
+  report = FALSE,
+  months = c(7, 8, 9),
+  max_grouping = ID,
+  iqr_cutoff = 3,
+  max_yearly_outliers = 5
+)
 }
 \arguments{
 \item{station_data}{A data.frame in the format returned by the functions
@@ -21,7 +29,29 @@ Default "all" will perform all cleaning steps.
   \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
   See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
   for a description of the flag.}
+  \item{}{\emph{"month"} - Removes all rows with a month in the
+  \emph{months} parameter. Typically summer months are removed.}
+  \item{}{\emph{"high_max"} - Removes all rows where the value exceeds
+  the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
+  the yearly maximums for each station. Alternatively, yearly maximums
+  can be found for clusters of stations by changing \emph{max_grouping}
+  to the name of the cluster ID column. If there are
+  \emph{max_yearly_outliers} or more values above the cutoff for a year
+  and station, then the values are retained.}
 }}
+
+\item{months}{The months to remove when "month" is a part of \emph{clean}.
+The default is 7 (Jul), 8 (Aug), and 9 (Sep).}
+
+\item{max_grouping}{When "high_max" is part of \emph{clean}, this specifies
+what column to group by when finding interquartile ranges.}
+
+\item{iqr_cutoff}{The number of interquartile ranges above the 3rd quartile
+to consider values outliers when "high_max" is part of \emph{clean}.}
+
+\item{max_yearly_outliers}{If there are this many values for a year and
+station which are marked as maximum outliers when "high_max" is part of
+\emph{clean}, the values are considered as not outliers.}
 }
 \value{
 A data.frame where each row is a measurement of a climate variable
