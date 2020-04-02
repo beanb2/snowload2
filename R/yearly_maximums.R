@@ -31,6 +31,8 @@
 #'     \item{}{\emph{MAX} - The maximum of the given values.}
 #'     \item{}{\emph{MAX_N} - Number of values used to find the max.}
 #'     \item{}{\emph{MAX_MONTHS} - Number of unique months with values.}
+#'     \item{}{\emph{PRIORITIZED} - Only applies when \emph{prioritize} is not
+#'     null. True when max value is a prioritized value, false otherwise.}
 #'   }
 #'
 #' @examples
@@ -71,11 +73,18 @@ yearly_maximums <- function(station_data, id, date, value,
                      true = !! value_type %in% prioritize,
                      false = TRUE)
     )
-  }
 
-  dplyr::summarise(station_data,
-                   MAX = max(!! value),
-                   MAX_N = n(),
-                   MAX_MONTHS = length(unique(MONTH)))
+    dplyr::summarise(station_data,
+                     MAX = max(!! value),
+                     MAX_N = n(),
+                     MAX_MONTHS = length(unique(MONTH)),
+                     PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
+                       prioritize)
+  } else {
+    dplyr::summarise(station_data,
+                     MAX = max(!! value),
+                     MAX_N = n(),
+                     MAX_MONTHS = length(unique(MONTH)))
+  }
 }
 
