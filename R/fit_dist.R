@@ -136,14 +136,26 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
 
   # Wrapper functions for fit and q_function
   #=============================================================================
-  fit_wrap <- function(x, f) {
-    x <- x[x != 0 & !is.na(x)]
-    if (length(x) <= 1) return(paste("NA", "NA", "NA"))
-    dist <- try(f(x), silent = TRUE)
-    if(inherits(dist, "try-error")){
-      return(paste("NA", "NA", "NA"))
+  if (method == "regression") {
+    fit_wrap <- function(x, f) {
+      x <- x[!is.na(x)]
+      if (length(x) <= 1) return(paste("NA", "NA", "NA"))
+      dist <- try(f(x), silent = TRUE)
+      if(inherits(dist, "try-error")){
+        return(paste("NA", "NA", "NA"))
+      }
+      else return(paste(dist, collapse = " "))
     }
-    else return(paste(dist, collapse = " "))
+  } else {
+    fit_wrap <- function(x, f) {
+      x <- x[x != 0 & !is.na(x)]
+      if (length(x) <= 1) return(paste("NA", "NA", "NA"))
+      dist <- try(f(x), silent = TRUE)
+      if(inherits(dist, "try-error")){
+        return(paste("NA", "NA", "NA"))
+      }
+      else return(paste(dist, collapse = " "))
+    }
   }
 
   event50 <- function(par1, par2, par3, zero, f) {
