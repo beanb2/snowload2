@@ -12,12 +12,14 @@
 #'   normal), "gamma", "gumbel", or "gev" (generalized extreme value).
 #' @param method Method "mle" (maximum likelihood) will work for any
 #' distribution. Method "mme" (moment matching) will work with "lnorm" and
-#' "gamma" distributions.
-#' Method "lmoments" will only work with "gev" distribution.
-#' Method "regression" will only work with "lnorm" distribution.
+#' "gamma" distributions. Method "lmoments" will only work with "gev"
+#' distribution. Method "regression" will only work with "lnorm" distribution.
 #' @param tail Proportion of data to use when fitting from 0 to 1. If .33 is
 #' chosen, then only the upper third of the data will be used for fitting.
 #' Only applies to "regression" method.
+#' @param ... Other parameters to send to the distribution functions
+#' fitdistrplus::fitdist for "lnorm" and "gamma" distributions or extRemes::fevd
+#' for "gumbel" and "gev" distributions.
 #'
 #' @return A data.frame where each row is a maximum for a given id and year:
 #'   \describe{
@@ -49,7 +51,8 @@
 #'
 #'
 #' @export
-fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) {
+fit_dist <- function(station_data, id, values, distr, method = "mle",
+                     tail = 1, ...) {
   # Prepare column names and prepare data
   #=============================================================================
   id <- dplyr::enquo(id)
@@ -61,11 +64,13 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
   # Choose functions for fit and q_function
   #=============================================================================
   if (distr == "lnorm") {
+
+
     # Log normal
     if (method %in% c("mle", "mme")) {
-      fit <- function(x) {
+      fit <- function(x, ...) {
         fitdistrplus::fitdist(x, distr = "lnorm", method = method,
-                              keepdata = FALSE)$estimate
+                              keepdata = FALSE, ...)$estimate
       }
     } else if (method == "regression") {
       fit <- function(x) {
@@ -88,11 +93,13 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
     }
 
   } else if (distr == "gamma") {
+
+
     # Gamma
     if (method %in% c("mle", "mme")) {
-      fit <- function(x) {
+      fit <- function(x, ...) {
         fitdistrplus::fitdist(x, distr = "gamma", method = method,
-                              keepdata = FALSE)$estimate
+                              keepdata = FALSE, ...)$estimate
       }
     } else error("No method", method, "for distr", distr)
 
@@ -100,10 +107,12 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
       stats::qgamma(p = p, shape = par1, rate = par2)
     }
   } else if (distr == "gumbel") {
+
+
     # Gumbel
     if (method == "mle") {
-      fit <- function(x) {
-        extRemes::fevd(x, type = "Gumbel", method = "MLE")$results$par
+      fit <- function(x, ...) {
+        extRemes::fevd(x, type = "Gumbel", method = "MLE", ...)$results$par
       }
     } else error("No method", method, "for distr", distr)
 
@@ -114,14 +123,16 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
     }
 
   } else if (distr == "gev") {
+
+
     # Generalized extreme value
     if (method == "mle") {
-      fit <- function(x) {
-        extRemes::fevd(x, type = "GEV", method = "MLE")$results$par
+      fit <- function(x, ...) {
+        extRemes::fevd(x, type = "GEV", method = "MLE", ...)$results$par
       }
     } else if (method == "lmoments") {
-      fit <- function(x) {
-        extRemes::fevd(x, type = "GEV", method = "Lmoments")$results
+      fit <- function(x, ...) {
+        extRemes::fevd(x, type = "GEV", method = "Lmoments", ...)$results
       }
     } else error("No method", method, "for distr", distr)
 
@@ -147,10 +158,10 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
       else return(paste(dist, collapse = " "))
     }
   } else {
-    fit_wrap <- function(x, f) {
+    fit_wrap <- function(x, f, ...) {
       x <- x[x != 0 & !is.na(x)]
       if (length(x) <= 1) return(paste("NA", "NA", "NA"))
-      dist <- try(f(x), silent = TRUE)
+      dist <- try(f(x, ...), silent = TRUE)
       if(inherits(dist, "try-error")){
         return(paste("NA", "NA", "NA"))
       }
@@ -179,33 +190,136 @@ fit_dist <- function(station_data, id, values, distr, method = "mle", tail = 1) 
 
 
 
+  # Summarise data
+  #=============================================================================
+  summary <- dplyr::summarise(
+    station_data,
+    DISTR = distr,
+    NFIT = sum(!is.na(!! values)),
+    PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
+  )
+
+  if ("PRIORITIZED" %in% names(station_data)) {
+    prioritized <- dplyr::summarise(
+      station_data,
+      PRIORITIZED = sum(PRIORITIZED) / sum(!is.na(!! values))
+    )
+    summary <- suppressMessages(left_join(summary, prioritized))
+  }
+
   # Fit distributions
   #=============================================================================
-  if ("PRIORITIZED" %in% names(station_data)) {
-    station_data <- dplyr::summarise(
-      station_data,
-      DISTR = distr,
-      NFIT = sum(!is.na(!! values)),
-      PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
-      PRIORITIZED = sum(PRIORITIZED) / NFIT,
-      PAR1 = fit_wrap(!! values, fit)
-    )
-  } else {
-    station_data <- dplyr::summarise(
-      station_data,
-      DISTR = distr,
-      NFIT = sum(!is.na(!! values)),
-      PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
-      PAR1 = fit_wrap(!! values, fit)
-    )
-  }
-  station_data <- tidyr::separate(
-    station_data, col = PAR1,
+  fits <- dplyr::summarise(
+    station_data,
+    PAR1 = fit_wrap(!! values, fit, ...)
+  )
+
+  fits <- suppressMessages(left_join(summary, fits))
+  fits <- tidyr::separate(
+    fits, col = PAR1,
     into = c("PAR1", "PAR2", "PAR3"),
     sep = " ", fill = "right", convert = TRUE
   )
-  dplyr::mutate(station_data,
+  dplyr::mutate(fits,
                 EVENT50 = event50(PAR1, PAR2, PAR3, PROP_ZERO, q_function))
 }
 
 
+#' @export
+fit_dist_bayes <- function(station_data, id, values, prior_loc = NULL,
+                           prior_scale = NULL, prior_shape = NULL, ...) {
+  # Prepare column names and prepare data
+  #=============================================================================
+  id <- dplyr::enquo(id)
+  values <- dplyr::enquo(values)
+  prior_loc <- dplyr::enquo(prior_loc)
+  prior_scale <- dplyr::enquo(prior_scale)
+  prior_shape <- dplyr::enquo(prior_shape)
+
+  station_data <- dplyr::group_by(station_data, !! id)
+
+
+  # Choose functions for fit and q_function
+  #=============================================================================
+  fit <- function(x, ...) {
+    chain <- extRemes::fevd(x, type = "GEV", method = "Bayesian", ...)$results
+    par <- colMeans(chain)[1:3]
+    par[2] <- exp(par[2])
+    return(par)
+  }
+
+  q_function <- function(p, par1, par2, par3) {
+    mapply(extRemes::qevd, p = p, loc = par1, scale = par2, shape = par3,
+           MoreArgs = list(type = "GEV"))
+    #evd::qgev(p = p, loc = par1, scale = par2, shape = par3)
+  }
+
+
+
+  # Wrapper functions for fit and q_function
+  #=============================================================================
+  fit_wrap <- function(x, f, ...) {
+    x <- x[x != 0 & !is.na(x)]
+    if (length(x) <= 1) return(paste("NA", "NA", "NA"))
+    dist <- try(f(x, ...), silent = TRUE)
+    if(inherits(dist, "try-error")){
+      return(paste("NA", "NA", "NA"))
+    }
+    else return(paste(dist, collapse = " "))
+  }
+
+  event50 <- function(par1, par2, par3, zero, f) {
+    out <- rep(as.numeric(NA), length(par1))
+    out[zero == 1] <- 0
+    keep <- !is.na(par1)
+    if (sum(keep) == 0) {return(as.numeric(NA))}
+    par1 <- par1[keep]
+    par2 <- par2[keep]
+    par3 <- par3[keep]
+    zero <- zero[keep]
+
+    p <- (.98 - zero)/(1-zero)
+    out[keep] <- f(p, par1, par2, par3)
+    return(out)
+  }
+
+
+
+  # Summarise data
+  #=============================================================================
+  summary <- dplyr::summarise(
+    station_data,
+    DISTR = "gev",
+    NFIT = sum(!is.na(!! values)),
+    PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
+  )
+
+  if ("PRIORITIZED" %in% names(station_data)) {
+    prioritized <- dplyr::summarise(
+      station_data,
+      PRIORITIZED = sum(PRIORITIZED) / sum(!is.na(!! values))
+    )
+    summary <- suppressMessages(left_join(summary, prioritized))
+  }
+
+  # Fit distributions
+  #=============================================================================
+  fits <- dplyr::summarise(
+    station_data,
+    PAR1 = fit_wrap(!! values,
+                    fit,
+                    priorParams = list(m = c(dplyr::first(!! prior_loc),
+                                             dplyr::first(!! prior_scale),
+                                             dplyr::first(!! prior_shape))),
+                    ...)
+  )
+
+  fits <- suppressMessages(left_join(summary, fits))
+  fits <- tidyr::separate(
+    fits, col = PAR1,
+    into = c("PAR1", "PAR2", "PAR3"),
+    sep = " ", fill = "right", convert = TRUE
+  )
+  dplyr::mutate(fits,
+                EVENT50 = event50(PAR1, PAR2, PAR3, PROP_ZERO, q_function))
+}

@@ -4,7 +4,7 @@
 \alias{fit_dist}
 \title{Fit distributions for snowload yearly maximums.}
 \usage{
-fit_dist(station_data, id, values, distr, method = "mle", tail = 1)
+fit_dist(station_data, id, values, distr, method = "mle", tail = 1, ...)
 }
 \arguments{
 \item{station_data}{A data frame with yearly maximum station snow data (see
@@ -18,13 +18,16 @@ normal), "gamma", "gumbel", or "gev" (generalized extreme value).}
 
 \item{method}{Method "mle" (maximum likelihood) will work for any
 distribution. Method "mme" (moment matching) will work with "lnorm" and
-"gamma" distributions.
-Method "lmoments" will only work with "gev" distribution.
-Method "regression" will only work with "lnorm" distribution.}
+"gamma" distributions. Method "lmoments" will only work with "gev"
+distribution. Method "regression" will only work with "lnorm" distribution.}
 
 \item{tail}{Proportion of data to use when fitting from 0 to 1. If .33 is
 chosen, then only the upper third of the data will be used for fitting.
 Only applies to "regression" method.}
+
+\item{...}{Other parameters to send to the distribution functions
+fitdistrplus::fitdist for "lnorm" and "gamma" distributions or extRemes::fevd
+for "gumbel" and "gev" distributions.}
 
 \item{value}{Column containing the observations to maximize}
 }
