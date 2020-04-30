@@ -4,7 +4,7 @@
 \alias{fit_dist}
 \title{Fit distributions for snowload yearly maximums.}
 \usage{
-fit_dist(station_data, id, values, distr, method = "mle", tail = 1, ...)
+fit_dist(station_data, id, values, distr, method = "mle", tail = 1, shape, ...)
 }
 \arguments{
 \item{station_data}{A data frame with yearly maximum station snow data (see
@@ -24,6 +24,9 @@ distribution. Method "regression" will only work with "lnorm" distribution.}
 \item{tail}{Proportion of data to use when fitting from 0 to 1. If .33 is
 chosen, then only the upper third of the data will be used for fitting.
 Only applies to "regression" method.}
+
+\item{shape}{Column containing shape paramter when shape parameter is to be
+fixed. Only applies to "gev" distr with "mle" method.}
 
 \item{...}{Other parameters to send to the distribution functions
 fitdistrplus::fitdist for "lnorm" and "gamma" distributions or extRemes::fevd

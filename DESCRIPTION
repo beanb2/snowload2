@@ -12,6 +12,6 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr, fields, stats, readr, utils, lubridate, tidyr, 
-  magrittr, fitdistrplus, extRemes
+  magrittr, fitdistrplus, extRemes, evd
 Depends: R (>= 3.6.0)
 RoxygenNote: 7.1.0

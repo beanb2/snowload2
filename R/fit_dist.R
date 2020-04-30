@@ -17,6 +17,8 @@
 #' @param tail Proportion of data to use when fitting from 0 to 1. If .33 is
 #' chosen, then only the upper third of the data will be used for fitting.
 #' Only applies to "regression" method.
+#' @param shape Column containing shape paramter when shape parameter is to be
+#' fixed. Only applies to "gev" distr with "mle" method.
 #' @param ... Other parameters to send to the distribution functions
 #' fitdistrplus::fitdist for "lnorm" and "gamma" distributions or extRemes::fevd
 #' for "gumbel" and "gev" distributions.
@@ -52,7 +54,7 @@
 #'
 #' @export
 fit_dist <- function(station_data, id, values, distr, method = "mle",
-                     tail = 1, ...) {
+                     tail = 1, shape, ...) {
   # Prepare column names and prepare data
   #=============================================================================
   id <- dplyr::enquo(id)
@@ -127,8 +129,12 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
 
     # Generalized extreme value
     if (method == "mle") {
-      fit <- function(x, ...) {
-        extRemes::fevd(x, type = "GEV", method = "MLE", ...)$results$par
+      fit <- function(x, shape, ...) {
+        if (missing(shape)) {
+          evd::fgev(x, std.err = FALSE, ...)$param
+        } else {
+          evd::fgev(x, std.err = FALSE, shape = shape, ...)$param
+        }
       }
     } else if (method == "lmoments") {
       fit <- function(x, ...) {
@@ -147,26 +153,18 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
 
   # Wrapper functions for fit and q_function
   #=============================================================================
-  if (method == "regression") {
-    fit_wrap <- function(x, f) {
+  fit_wrap <- function(x, f, ...) {
+    if (method == "regression") {
       x <- x[!is.na(x)]
-      if (length(x) <= 1) return(paste("NA", "NA", "NA"))
-      dist <- try(f(x), silent = TRUE)
-      if(inherits(dist, "try-error")){
-        return(paste("NA", "NA", "NA"))
-      }
-      else return(paste(dist, collapse = " "))
-    }
-  } else {
-    fit_wrap <- function(x, f, ...) {
+    } else {
       x <- x[x != 0 & !is.na(x)]
-      if (length(x) <= 1) return(paste("NA", "NA", "NA"))
-      dist <- try(f(x, ...), silent = TRUE)
-      if(inherits(dist, "try-error")){
-        return(paste("NA", "NA", "NA"))
-      }
-      else return(paste(dist, collapse = " "))
     }
+    if (length(x) <= 1) return(paste("NA", "NA", "NA"))
+    dist <- try(f(x, ...), silent = TRUE)
+    if(inherits(dist, "try-error")){
+      return(paste("NA", "NA", "NA"))
+    }
+    else return(paste(dist, collapse = " "))
   }
 
   event50 <- function(par1, par2, par3, zero, f) {
@@ -204,17 +202,25 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
       station_data,
       PRIORITIZED = sum(PRIORITIZED) / sum(!is.na(!! values))
     )
-    summary <- suppressMessages(left_join(summary, prioritized))
+    summary <- suppressMessages(dplyr::left_join(summary, prioritized))
   }
 
   # Fit distributions
   #=============================================================================
-  fits <- dplyr::summarise(
-    station_data,
-    PAR1 = fit_wrap(!! values, fit, ...)
-  )
+  if (missing(shape)) {
+    fits <- dplyr::summarise(
+      station_data,
+      PAR1 = fit_wrap(!! values, fit, ...)
+    )
+  } else {
+    shape <- dplyr::enquo(shape)
+    fits <- dplyr::summarise(
+      station_data,
+      PAR1 = fit_wrap(!! values, fit, shape = dplyr::first(!! shape), ...)
+    )
+  }
 
-  fits <- suppressMessages(left_join(summary, fits))
+  fits <- suppressMessages(dplyr::left_join(summary, fits))
   fits <- tidyr::separate(
     fits, col = PAR1,
     into = c("PAR1", "PAR2", "PAR3"),
@@ -299,7 +305,7 @@ fit_dist_bayes <- function(station_data, id, values, prior_loc = NULL,
       station_data,
       PRIORITIZED = sum(PRIORITIZED) / sum(!is.na(!! values))
     )
-    summary <- suppressMessages(left_join(summary, prioritized))
+    summary <- suppressMessages(dplyr::left_join(summary, prioritized))
   }
 
   # Fit distributions
@@ -314,7 +320,7 @@ fit_dist_bayes <- function(station_data, id, values, prior_loc = NULL,
                     ...)
   )
 
-  fits <- suppressMessages(left_join(summary, fits))
+  fits <- suppressMessages(dplyr::left_join(summary, fits))
   fits <- tidyr::separate(
     fits, col = PAR1,
     into = c("PAR1", "PAR2", "PAR3"),
