@@ -58,7 +58,7 @@ yearly_maximums <- function(station_data, id, date, value,
     station_data,
     MONTH = as.numeric(lubridate::month(!! date)),
     YEAR = as.numeric(lubridate::year(!! date)),
-    YEAR = dplyr::if_else(MONTH > 9, YEAR, YEAR + 1)
+    YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR)
   )
 
   station_data <- dplyr::group_by(station_data, !! id, YEAR)
@@ -69,7 +69,9 @@ yearly_maximums <- function(station_data, id, date, value,
       dplyr::if_else(rep(sum(!! value_type %in% prioritize) >=
                        prioritize_threshold$n &&
                        length(unique(MONTH[!! value_type %in% prioritize])) >=
-                       prioritize_threshold$month, n()),
+                       prioritize_threshold$month &&
+                       max((!! value)[!! value_type %in% prioritize]) > 0,
+                       n()),
                      true = !! value_type %in% prioritize,
                      false = TRUE)
     )

@@ -101,7 +101,7 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
     outliers <- station_data %>%
       dplyr::mutate(MONTH = as.numeric(lubridate::month(DATE)),
                     YEAR = as.numeric(lubridate::year(DATE)),
-                    YEAR = dplyr::if_else(MONTH > 9, YEAR, YEAR + 1))
+                    YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR))
 
     # find a cutoff for each station based on the stations interquartile range
     # of yearly maximums
