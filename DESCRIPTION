@@ -1,7 +1,7 @@
 Package: snowload2
 Type: Package
 Title: Ground Snow Load Prediction Functions
-Version: 0.1.1.9004
+Version: 0.1.1.9005
 Authors@R: c(
   person("Brennan", "Bean", email = "brennan.bean.20@gmail.com", role = c("aut", "cre")),
   person("Jadon", "Wagstaff", email = "jadonw@gmail.com", role = "aut"))

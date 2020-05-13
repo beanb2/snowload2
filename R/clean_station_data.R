@@ -14,12 +14,21 @@
 #'     missing, presumed zero.
 #'     See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
 #'     for a description of the flag.}
+#'
 #'     \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
 #'     See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
 #'     for a description of the flag.}
+#'
 #'     \item{}{\emph{"month"} - Removes all rows with a month in the
 #'     \emph{months} parameter. Typically summer months are removed.}
-#'     \item{}{\emph{"high_max"} - Removes all rows where the value exceeds
+#'
+#'     \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
+#'     depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
+#'     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
+#'     maximum depth is multiplied by 0.042, then compared.}
+#'
+#'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
+#'     units first (such as kPa). Removes all rows where the value exceeds
 #'     the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
 #'     the yearly maximums for each station. Alternatively, yearly maximums
 #'     can be found for clusters of stations by changing \emph{max_grouping}
@@ -73,28 +82,44 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
 
   # Missing presumed zero flag removal
   #=============================================================================
-  if ("mpzero" %in% clean || clean == "all") {
+  if ("mpzero" %in% clean || "all" %in% clean) {
     station_data <- station_data %>%
       dplyr::filter(MFLAG != "P" | is.na(MFLAG))
   }
 
   # Quality flag removal
   #=============================================================================
-  if ("qflag" %in% clean || clean == "all") {
+  if ("qflag" %in% clean || "all" %in% clean) {
     station_data <- station_data %>%
       dplyr::filter(QFLAG %in% c("", " ", NA))
   }
 
   # Month removal
   #=============================================================================
-  if ("month" %in% clean || clean == "all") {
+  if ("month" %in% clean || "all" %in% clean) {
     station_data <- station_data %>%
       dplyr::filter(!lubridate::month(DATE) %in% months)
   }
 
+  # State max
+  #=============================================================================
+  if ("state_max" %in% clean) {
+    warning("Ensure VALUE is unaltered for 'state_max' to work properly.")
+
+    station_data <- station_data %>%
+      dplyr::left_join(snowload2::ghcnd_stations %>%
+                         dplyr::select(ID, STATE_MAX)) %>%
+      dplyr::filter(is.na(STATE_MAX) |
+                      !ELEMENT %in% c("SNWD", "WESD") |
+                      (ELEMENT == "SNWD" & VALUE <= STATE_MAX) |
+                      (ELEMENT == "WESD" & VALUE <= STATE_MAX * 0.042))
+  }
+
   # Max outlier removal
   #=============================================================================
-  if ("high_max" %in% clean || clean == "all") {
+  if ("high_max" %in% clean) {
+    warning("Ensure VALUE have same units for 'high_max' to work properly.")
+
     max_grouping <- dplyr::enquo(max_grouping)
 
     # year needed for finding maximums and number of yearly outliers

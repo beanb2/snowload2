@@ -28,25 +28,20 @@ ggplot(data = world) +
 
 # Based on above map, remove stations with no state
 ghcnd_stations <- ghcnd_stations %>%
-  filter(!is.na(STATE)) %>%
-  mutate(ELEVATION = dplyr::if_else(ELEVATION == -999.9,
-                                    as.numeric(NA),
-                                    ELEVATION),
-         LATITUDE = dplyr::if_else(LATITUDE == -999.9,
-                                   as.numeric(NA),
-                                   LATITUDE),
-         LONGITUDE = dplyr::if_else(LONGITUDE == -999.9,
-                                    as.numeric(NA),
-                                    LONGITUDE))
+  filter(!is.na(STATE),
+         ELEVATION != -999.9,
+         LATITUDE != -999.9,
+         LONGITUDE != -999.9)
 
 
 
 # Add eco regions
 #===============================================================================
 # Shapefile obtained from
-#ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/NA_CEC_Eco_Level3.zip
-eco3 <- sf::st_read("NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
-eco3 <- sf::st_transform(eco3, crs = 4326)
+#
+eco3 <- sf::st_read("../NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
+eco3 <- sf::st_transform(eco3, crs = 4326) %>%
+  filter(NA_L3CODE != "0.0.0")
 
 ghcnd_sp <- sf::st_as_sf(ghcnd_stations %>%
                            select(ID, LATITUDE, LONGITUDE),
@@ -54,9 +49,9 @@ ghcnd_sp <- sf::st_as_sf(ghcnd_stations %>%
                          crs = 4326) %>%
   mutate(index = as.integer(sf::st_intersects(geometry, eco3)))
 
-for (i in 66380:nrow(ghcnd_sp)) {
-  print(i)
+for (i in 1:nrow(ghcnd_sp)) {
   if (is.na(ghcnd_sp$index[i])) {
+    print(i)
     x <- sf::st_distance(ghcnd_sp[i,], eco3)
     index <- which.min(x)
     if (as.numeric(x[index]) < 300000) ghcnd_sp$index[i] <- index
@@ -75,7 +70,7 @@ ghcnd_stations <- ghcnd_stations %>%
 world <- ne_countries(scale = "medium", returnclass = "sf")
 ggplot(data = world) +
   geom_sf() +
-  geom_point(data = ghcnd_stations2 %>% filter(is.na(ECO3)),
+  geom_point(data = ghcnd_stations %>% filter(is.na(ECO3)),
              aes(x = LONGITUDE, y = LATITUDE)) +
   theme_bw()
 
@@ -83,6 +78,24 @@ ggplot(data = world) +
 ghcnd_stations <- ghcnd_stations %>% filter(!is.na(ECO3))
 
 
+
+# Add state maximums
+#===============================================================================
+state_max <- read_csv("https://www.ncdc.noaa.gov/extremes/scec/records.csv") %>%
+  filter(Element == "All-Time Maximum Snow Depth") %>%
+  left_join(data.frame(State = state.name, Abb = state.abb)) %>%
+  filter(!is.na(Abb)) %>%
+  select(STATE = Abb, STATE_MAX = Notes) %>%
+  distinct() %>%
+  mutate(STATE_MAX = STATE_MAX * 25.4)# convert inches to mm
+
+ghcnd_stations <- ghcnd_stations %>%
+  left_join(state_max)
+
+
+
+# Save data in package
+#===============================================================================
 usethis::use_data(ghcnd_stations, overwrite = TRUE)
 
 

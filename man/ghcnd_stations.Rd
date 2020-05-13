@@ -4,7 +4,8 @@
 \name{ghcnd_stations}
 \alias{ghcnd_stations}
 \title{Global Historical Climatology Network (GHCN-Daily) Stations}
-\format{A data frame with 115081 rows and 9 variables:
+\format{
+A data frame with 115081 rows and 9 variables:
 
  \describe{
  \item{ID}{The station identification code.  Note that the first two
@@ -60,8 +61,12 @@
  station. If the station has no WMO number (or one has not yet been
  matched to this station), then the field is blank.}
  \item{ECO3}{Identifier for the EPA level 3 ecoregion where the station
- is located.}
- }}
+ is located. Obtained from
+ ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/NA_CEC_Eco_Level3.zip}
+ \item{STATE_MAX}{Maximum observed snow depth in mm for state. Obtained from
+ https://www.ncdc.noaa.gov/extremes/scec/records.csv.}
+ }
+}
 \usage{
 ghcnd_stations
 }

@@ -20,25 +20,34 @@ clean_station_data(
 \code{\link{get_year_data}}.}
 
 \item{clean}{A character vector describing what cleaning steps to take.
-Default "all" will perform all cleaning steps.
-\describe{
-  \item{}{\emph{"mpzero"} - Removes all rows with measurement flag of "P":
-  missing, presumed zero.
-  See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
-  for a description of the flag.}
-  \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
-  See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
-  for a description of the flag.}
-  \item{}{\emph{"month"} - Removes all rows with a month in the
-  \emph{months} parameter. Typically summer months are removed.}
-  \item{}{\emph{"high_max"} - Removes all rows where the value exceeds
-  the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
-  the yearly maximums for each station. Alternatively, yearly maximums
-  can be found for clusters of stations by changing \emph{max_grouping}
-  to the name of the cluster ID column. If there are
-  \emph{max_yearly_outliers} or more values above the cutoff for a year
-  and station, then the values are retained.}
-}}
+  Default "all" will perform all cleaning steps.
+  \describe{
+    \item{}{\emph{"mpzero"} - Removes all rows with measurement flag of "P":
+    missing, presumed zero.
+    See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
+    for a description of the flag.}
+
+    \item{}{\emph{"qflag"} - Removes all rows with a non-empty quality flag.
+    See ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/readme.txt, section 3
+    for a description of the flag.}
+
+    \item{}{\emph{"month"} - Removes all rows with a month in the
+    \emph{months} parameter. Typically summer months are removed.}
+
+    \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
+    depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
+    \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
+    maximum depth is multiplied by 0.042, then compared.}
+
+    \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
+    units first (such as kPa). Removes all rows where the value exceeds
+    the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
+    the yearly maximums for each station. Alternatively, yearly maximums
+    can be found for clusters of stations by changing \emph{max_grouping}
+    to the name of the cluster ID column. If there are
+    \emph{max_yearly_outliers} or more values above the cutoff for a year
+    and station, then the values are retained.}
+  }}
 
 \item{months}{The months to remove when "month" is a part of \emph{clean}.
 The default is 7 (Jul), 8 (Aug), and 9 (Sep).}
