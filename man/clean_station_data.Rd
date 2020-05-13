@@ -37,7 +37,7 @@ clean_station_data(
     \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
     depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
-    maximum depth is multiplied by 0.042, then compared.}
+    maximum depth is multiplied by 4.2, then compared.}
 
     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
     units first (such as kPa). Removes all rows where the value exceeds

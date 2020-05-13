@@ -25,7 +25,7 @@
 #'     \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
 #'     depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
 #'     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
-#'     maximum depth is multiplied by 0.042, then compared.}
+#'     maximum depth is multiplied by 4.2, then compared.}
 #'
 #'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
 #'     units first (such as kPa). Removes all rows where the value exceeds
@@ -80,6 +80,11 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
                                iqr_cutoff = 3, max_yearly_outliers = 5) {
   `%>%` <- magrittr::`%>%`
 
+  if ("high_max" %in% clean && "state_max" %in% clean) {
+    stop("Cleaning 'high_max' and 'state_max' have different ",
+         "requirements for values in the VALUE column, can't clean both.")
+  }
+
   # Missing presumed zero flag removal
   #=============================================================================
   if ("mpzero" %in% clean || "all" %in% clean) {
@@ -104,7 +109,7 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
   # State max
   #=============================================================================
   if ("state_max" %in% clean) {
-    warning("Ensure VALUE is unaltered for 'state_max' to work properly.")
+    warning("Assuming VALUE is unaltered for cleaning via 'state_max'.")
 
     station_data <- station_data %>%
       dplyr::left_join(snowload2::ghcnd_stations %>%
@@ -112,13 +117,13 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
       dplyr::filter(is.na(STATE_MAX) |
                       !ELEMENT %in% c("SNWD", "WESD") |
                       (ELEMENT == "SNWD" & VALUE <= STATE_MAX) |
-                      (ELEMENT == "WESD" & VALUE <= STATE_MAX * 0.042))
+                      (ELEMENT == "WESD" & VALUE <= STATE_MAX * 4.2))
   }
 
   # Max outlier removal
   #=============================================================================
   if ("high_max" %in% clean) {
-    warning("Ensure VALUE have same units for 'high_max' to work properly.")
+    warning("Assuming VALUE have same units for cleaning via 'high_max'.")
 
     max_grouping <- dplyr::enquo(max_grouping)
 
