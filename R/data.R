@@ -3,7 +3,7 @@
 #' Collected from
 #' ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd-stations.txt.
 #'
-#' @format A data frame with 115081 rows and 9 variables:
+#' @format A data frame with 69163 rows and 12 variables:
 #'
 #'  \describe{
 #'  \item{ID}{The station identification code.  Note that the first two
@@ -63,6 +63,29 @@
 #'  ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/NA_CEC_Eco_Level3.zip}
 #'  \item{STATE_MAX}{Maximum observed snow depth in mm for state. Obtained from
 #'  https://www.ncdc.noaa.gov/extremes/scec/records.csv.}
+#'  \item{COUNTY}{County where station is located.}
 #'  }
 "ghcnd_stations"
+
+
+
+#' Max 1,2,...,10 day snowfall totals for each county.
+#'
+#' Collected from
+#' https://www.ncdc.noaa.gov/snow-and-ice/snowfall-extremes/. 1, 2, and 3 day
+#' data are from this source. 4,5,...10 day data are calculated by day
+#' * (3day_value / 3).
+#'
+#' @format A data frame with 31430 rows and 4 variables:
+#'
+#'  \describe{
+#'  \item{STATE}{The U.S. postal code for the state (for U.S. stations
+#'  only).}
+#'  \item{COUNTY}{The name of the county.}
+#'  \item{DAYS}{Number of days over which the maximum accumulated.}
+#'  \item{COUNTY_MAX}{Maximum snow in mm of snowfal accumulated over the number
+#'  of given DAYS.}
+#'  }
+"county_maxes"
+
 

@@ -39,6 +39,11 @@ clean_station_data(
     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
     maximum depth is multiplied by 4.2, then compared.}
 
+    \item{}{\emph{"county_max"} - Removes snow depths that exceed the maximum
+    depths over time for each county as listed in
+    \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
+    == "WESD", the maximum depth is multiplied by 4.2, then compared.}
+
     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
     units first (such as kPa). Removes all rows where the value exceeds
     the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of

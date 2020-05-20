@@ -94,9 +94,83 @@ ghcnd_stations <- ghcnd_stations %>%
 
 
 
+# Add counties
+#===============================================================================
+counties <- sf::st_as_sf(maps::map("county", plot = FALSE, fill = TRUE)) %>%
+  separate(ID, into = c("FULL_STATE", "COUNTY"), sep = ",") %>%
+  mutate(FULL_STATE = str_to_title(FULL_STATE),
+         COUNTY = str_to_title(COUNTY)) %>%
+  left_join(data.frame(FULL_STATE = as.character(state.name),
+                       STATE = as.character(state.abb))) %>%
+  mutate(STATE = if_else(FULL_STATE == "District Of Columbia",
+                         "DC", as.character(STATE))) %>%
+  select(-FULL_STATE)
+
+
+states <- c(
+  "AL", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "ID", "IL", "IN",
+  "IA", "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE",
+  "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+  "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+)
+
+state_county_info <- list()
+for (state in states) {
+  print(paste("State =", state))
+  state_counties <- counties %>% filter(STATE == state)
+
+  ghcnd_cnty <- sf::st_as_sf(ghcnd_stations %>%
+                               filter(STATE == state) %>%
+                               select(ID, STATE, LATITUDE, LONGITUDE),
+                             coords = c("LONGITUDE", "LATITUDE"),
+                             crs = 4326) %>%
+    mutate(index = as.integer(sf::st_intersects(geometry, state_counties)))
+
+  for (i in 1:nrow(ghcnd_cnty)) {
+    if (is.na(ghcnd_cnty$index[i])) {
+      x <- sf::st_distance(ghcnd_cnty[i,], state_counties)
+      index <- which.min(x)
+      ghcnd_cnty$index[i] <- index
+    }
+  }
+
+  state_county_info[[state]] <- ghcnd_cnty %>%
+    mutate(COUNTY = state_counties$COUNTY[index]) %>%
+    st_set_geometry(NULL) %>%
+    select(ID, COUNTY)
+}
+
+
+
+ghcnd_stations <- ghcnd_stations %>%
+  left_join(bind_rows(state_county_info))
+
+
 # Save data in package
 #===============================================================================
 usethis::use_data(ghcnd_stations, overwrite = TRUE)
+
+
+
+
+# County maxes
+#===============================================================================
+load("other_scripts/county_max_data.RData")
+
+county_maxes <- county_max_data %>%
+  pivot_longer(c(-state, -county.name)) %>%
+  mutate(name = factor(name, levels = c("one.day.value", "two.day.value",
+                                        "three.day.value", "four.day.value",
+                                        "five.day.value", "six.day.value",
+                                        "seven.day.value", "eight.day.value",
+                                        "nine.day.value", "ten.day.value")),
+         DAYS = as.numeric(name)) %>%
+  select(STATE = state, COUNTY = county.name, DAYS, COUNTY_MAX = value)
+
+
+usethis::use_data(county_maxes, overwrite = TRUE)
+
+
 
 
 

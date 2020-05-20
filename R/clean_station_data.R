@@ -27,6 +27,11 @@
 #'     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
 #'     maximum depth is multiplied by 4.2, then compared.}
 #'
+#'     \item{}{\emph{"county_max"} - Removes snow depths that exceed the maximum
+#'     depths over time for each county as listed in
+#'     \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
+#'     == "WESD", the maximum depth is multiplied by 4.2, then compared.}
+#'
 #'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
 #'     units first (such as kPa). Removes all rows where the value exceeds
 #'     the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
@@ -79,10 +84,12 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
                                months = c(7, 8, 9), max_grouping = ID,
                                iqr_cutoff = 3, max_yearly_outliers = 5) {
   `%>%` <- magrittr::`%>%`
+  wesd_mult <- 4.2
 
-  if ("high_max" %in% clean && "state_max" %in% clean) {
-    stop("Cleaning 'high_max' and 'state_max' have different ",
-         "requirements for values in the VALUE column, can't clean both.")
+  if ("high_max" %in% clean &&
+       ("state_max" %in% clean || "county_max" %in% clean)) {
+    stop("Cleaning 'high_max' and ('state_max' or 'county_max') have different",
+         " requirements for values in the VALUE column, can't clean both.")
   }
 
   # Missing presumed zero flag removal
@@ -111,13 +118,41 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
   if ("state_max" %in% clean) {
     warning("Assuming VALUE is unaltered for cleaning via 'state_max'.")
 
-    station_data <- station_data %>%
+    outliers <- station_data %>%
       dplyr::left_join(snowload2::ghcnd_stations %>%
-                         dplyr::select(ID, STATE_MAX)) %>%
-      dplyr::filter(is.na(STATE_MAX) |
-                      !ELEMENT %in% c("SNWD", "WESD") |
-                      (ELEMENT == "SNWD" & VALUE <= STATE_MAX) |
-                      (ELEMENT == "WESD" & VALUE <= STATE_MAX * 4.2))
+                         dplyr::select(ID, STATE_MAX),
+                       by = "ID") %>%
+      dplyr::filter(!is.na(STATE_MAX),
+                    ((ELEMENT == "SNWD" & VALUE > STATE_MAX) |
+                     (ELEMENT == "WESD" & VALUE > STATE_MAX * wesd_mult)))
+
+    station_data <- suppressMessages(
+      dplyr::anti_join(station_data, outliers)
+    )
+  }
+
+  # County max
+  #=============================================================================
+  if ("county_max" %in% clean) {
+    warning("Assuming VALUE is unaltered for cleaning via 'county_max'.")
+
+    outliers <- station_data %>%
+      dplyr::arrange(ID, DATE) %>%
+      dplyr::group_by(ID, ELEMENT) %>%
+      dplyr::mutate(DAYS = as.numeric(DATE - lag(DATE)),
+                    VDIFF = VALUE - lag(VALUE)) %>%
+      dplyr::left_join(snowload2::ghcnd_stations %>%
+                         dplyr::select(ID, STATE, COUNTY),
+                       by = "ID") %>%
+      dplyr::left_join(snowload2::county_maxes,
+                       by = c("STATE", "COUNTY", "DAYS")) %>%
+      dplyr::filter(!is.na(COUNTY_MAX),
+                    ((ELEMENT == "SNWD" & VDIFF > COUNTY_MAX) |
+                       (ELEMENT == "WESD" & VDIFF > COUNTY_MAX * wesd_mult)))
+
+    station_data <- suppressMessages(
+      dplyr::anti_join(station_data, outliers)
+    )
   }
 
   # Max outlier removal
@@ -137,20 +172,19 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
     # of yearly maximums
     high_cutoff <- outliers %>%
       dplyr::group_by(!! max_grouping, YEAR) %>%
-      dplyr::summarise(MAX = dplyr::if_else(max(VALUE) == 0,
-                                            0,
-                                            log(max(VALUE)))) %>%
+      dplyr::summarise(MAX = log(max(VALUE) + 1)) %>%
       dplyr::group_by(!! max_grouping) %>%
       dplyr::summarise(Q75 = stats::quantile(MAX, 0.75),
-                       IQR = Q75 - stats::quantile(MAX, 0.25),
-                       CUTOFF = dplyr::if_else(IQR < 0.001,
+                       Q25 = stats::quantile(MAX, 0.25),
+                       IQR = Q75 - Q25,
+                       CUTOFF = dplyr::if_else(exp(Q75) - exp(Q25) < 1,
                                                max(MAX),
                                                Q75 + iqr_cutoff * IQR))
 
     # find which values are above the cutoff, keep the values if there are
     # enough for a given year
     outliers <- suppressMessages(dplyr::left_join(outliers, high_cutoff)) %>%
-      dplyr::filter(log(VALUE) > CUTOFF) %>%
+      dplyr::filter(log(VALUE + 1) > CUTOFF) %>%
       dplyr::group_by(!! max_grouping, YEAR) %>%
       dplyr::filter(dplyr::n() < max_yearly_outliers) %>%
       dplyr::ungroup()

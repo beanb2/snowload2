@@ -5,7 +5,7 @@
 \alias{ghcnd_stations}
 \title{Global Historical Climatology Network (GHCN-Daily) Stations}
 \format{
-A data frame with 115081 rows and 9 variables:
+A data frame with 69163 rows and 12 variables:
 
  \describe{
  \item{ID}{The station identification code.  Note that the first two
@@ -65,6 +65,7 @@ A data frame with 115081 rows and 9 variables:
  ftp://newftp.epa.gov/EPADataCommons/ORD/Ecoregions/cec_na/NA_CEC_Eco_Level3.zip}
  \item{STATE_MAX}{Maximum observed snow depth in mm for state. Obtained from
  https://www.ncdc.noaa.gov/extremes/scec/records.csv.}
+ \item{COUNTY}{County where station is located.}
  }
 }
 \usage{
