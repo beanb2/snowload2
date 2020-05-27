@@ -32,14 +32,19 @@
 #'     \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
 #'     == "WESD", the maximum depth is multiplied by 4.2, then compared.}
 #'
-#'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
-#'     units first (such as kPa). Removes all rows where the value exceeds
-#'     the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
-#'     the yearly maximums for each station. Alternatively, yearly maximums
+#'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to
+#'     consistent units first (such as kPa). Removes all rows where the value
+#'     exceeds the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range
+#'     of the yearly maximums for each station. Alternatively, yearly maximums
 #'     can be found for clusters of stations by changing \emph{max_grouping}
 #'     to the name of the cluster ID column. If there are
 #'     \emph{max_yearly_outliers} or more values above the cutoff for a year
 #'     and station, then the values are retained.}
+#'
+#'     \item{}{\emph{"corrupt_years"} - If there are too many observations
+#'     removed by "county_max" or "state_max" for a year, then all
+#'     observations from that year are removed for that station. Threshold set
+#'     by \emph{yearly_threshold} parameter.}
 #'   }
 #' @param months The months to remove when "month" is a part of \emph{clean}.
 #'   The default is 7 (Jul), 8 (Aug), and 9 (Sep).
@@ -50,6 +55,9 @@
 #' @param max_yearly_outliers If there are this many values for a year and
 #'   station which are marked as maximum outliers when "high_max" is part of
 #'   \emph{clean}, the values are considered as not outliers.
+#' @param yearly_threshold The proportion (0 to 1) or number (integer) of
+#'   observations that are removed by "county_max" or "state_max"
+#'   to consider a year corrupted and remove it from a station record.
 #'
 #' @return A data.frame where each row is a measurement of a climate variable
 #'   in elem for a single day and station. Columns are:
@@ -82,7 +90,8 @@
 #' @export
 clean_station_data <- function(station_data, clean = "all", report = FALSE,
                                months = c(7, 8, 9), max_grouping = ID,
-                               iqr_cutoff = 3, max_yearly_outliers = 5) {
+                               iqr_cutoff = 3, max_yearly_outliers = 5,
+                               yearly_threshold = NULL) {
   `%>%` <- magrittr::`%>%`
   wesd_mult <- 4.2
 
@@ -90,6 +99,10 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
        ("state_max" %in% clean || "county_max" %in% clean)) {
     stop("Cleaning 'high_max' and ('state_max' or 'county_max') have different",
          " requirements for values in the VALUE column, can't clean both.")
+  }
+  if ("corrupt_years" %in% clean &&
+      (is.null(yearly_threshold) || yearly_threshold <= 0)) {
+    stop("'corrupt_years' requires a valid yearly_threshold")
   }
 
   # Missing presumed zero flag removal
@@ -111,6 +124,17 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
   if ("month" %in% clean || "all" %in% clean) {
     station_data <- station_data %>%
       dplyr::filter(!lubridate::month(DATE) %in% months)
+  }
+
+  # Corrupt years (part 1)
+  #=============================================================================
+  if ("corrupt_years" %in% clean) {
+    year_numbers <- station_data %>%
+      dplyr::mutate(MONTH = as.numeric(lubridate::month(DATE)),
+                    YEAR = as.numeric(lubridate::year(DATE)),
+                    YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR)) %>%
+      dplyr::group_by(ID, YEAR) %>%
+      dplyr::summarise(COUNT = dplyr::n())
   }
 
   # State max
@@ -149,6 +173,33 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
       dplyr::filter(!is.na(COUNTY_MAX),
                     ((ELEMENT == "SNWD" & VDIFF > COUNTY_MAX) |
                        (ELEMENT == "WESD" & VDIFF > COUNTY_MAX * wesd_mult)))
+
+    station_data <- suppressMessages(
+      dplyr::anti_join(station_data, outliers)
+    )
+  }
+
+  # Corrupt years (part 2)
+  #=============================================================================
+  if ("corrupt_years" %in% clean) {
+    outliers <- station_data %>%
+      dplyr::mutate(MONTH = as.numeric(lubridate::month(DATE)),
+                    YEAR = as.numeric(lubridate::year(DATE)),
+                    YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR)) %>%
+      dplyr::group_by(ID, YEAR) %>%
+      dplyr::mutate(POST_COUNT = dplyr::n()) %>%
+      dplyr::ungroup() %>%
+      dplyr::left_join(year_numbers, by = c("ID", "YEAR"))
+
+    if (yearly_threshold < 1) {
+      outliers <- outliers %>%
+        dplyr::filter(POST_COUNT / COUNT <= (1 - yearly_threshold)) %>%
+        dplyr::select(-YEAR, -MONTH, -COUNT, -POST_COUNT)
+    } else {
+      outliers <- outliers %>%
+        dplyr::filter(COUNT - POST_COUNT >= yearly_threshold) %>%
+        dplyr::select(-YEAR, -MONTH, -COUNT, -POST_COUNT)
+    }
 
     station_data <- suppressMessages(
       dplyr::anti_join(station_data, outliers)

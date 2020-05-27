@@ -11,7 +11,8 @@ clean_station_data(
   months = c(7, 8, 9),
   max_grouping = ID,
   iqr_cutoff = 3,
-  max_yearly_outliers = 5
+  max_yearly_outliers = 5,
+  yearly_threshold = NULL
 )
 }
 \arguments{
@@ -44,14 +45,19 @@ clean_station_data(
     \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
     == "WESD", the maximum depth is multiplied by 4.2, then compared.}
 
-    \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to consistent
-    units first (such as kPa). Removes all rows where the value exceeds
-    the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range of
-    the yearly maximums for each station. Alternatively, yearly maximums
+    \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to
+    consistent units first (such as kPa). Removes all rows where the value
+    exceeds the 3rd quartile plus \emph{iqr_cutoff} * the interquartile range
+    of the yearly maximums for each station. Alternatively, yearly maximums
     can be found for clusters of stations by changing \emph{max_grouping}
     to the name of the cluster ID column. If there are
     \emph{max_yearly_outliers} or more values above the cutoff for a year
     and station, then the values are retained.}
+
+    \item{}{\emph{"corrupt_years"} - If there are too many observations
+    removed by "county_max" or "state_max" for a year, then all
+    observations from that year are removed for that station. Threshold set
+    by \emph{yearly_threshold} parameter.}
   }}
 
 \item{months}{The months to remove when "month" is a part of \emph{clean}.
@@ -66,6 +72,10 @@ to consider values outliers when "high_max" is part of \emph{clean}.}
 \item{max_yearly_outliers}{If there are this many values for a year and
 station which are marked as maximum outliers when "high_max" is part of
 \emph{clean}, the values are considered as not outliers.}
+
+\item{yearly_threshold}{The proportion (0 to 1) or number (integer) of
+observations that are removed by "county_max" or "state_max"
+to consider a year corrupted and remove it from a station record.}
 }
 \value{
 A data.frame where each row is a measurement of a climate variable
