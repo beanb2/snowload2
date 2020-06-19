@@ -12,6 +12,7 @@ clean_station_data(
   max_grouping = ID,
   iqr_cutoff = 3,
   max_yearly_outliers = 5,
+  county_multiplier = 1,
   yearly_threshold = NULL
 )
 }
@@ -38,12 +39,14 @@ clean_station_data(
     \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
     depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
-    maximum depth is multiplied by 4.2, then compared.}
+    maximum depth is multiplied by 5, then compared.}
 
     \item{}{\emph{"county_max"} - Removes snow depths that exceed the maximum
     depths over time for each county as listed in
     \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
-    == "WESD", the maximum depth is multiplied by 4.2, then compared.}
+    == "WESD", the maximum depth is multiplied by 5, then compared. Subsequent
+    \emph{VALUE}s that remain unchanged after the first is removed are also
+    removed.}
 
     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to
     consistent units first (such as kPa). Removes all rows where the value
@@ -72,6 +75,9 @@ to consider values outliers when "high_max" is part of \emph{clean}.}
 \item{max_yearly_outliers}{If there are this many values for a year and
 station which are marked as maximum outliers when "high_max" is part of
 \emph{clean}, the values are considered as not outliers.}
+
+\item{county_multiplier}{A multiplier for county max values to allow for
+more conservative "county_max" outlier removal by setting to greater than 1.}
 
 \item{yearly_threshold}{The proportion (0 to 1) or number (integer) of
 observations that are removed by "county_max" or "state_max"

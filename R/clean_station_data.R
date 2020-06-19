@@ -25,12 +25,14 @@
 #'     \item{}{\emph{"state_max"} - Removes snow depths that exceed the maximum
 #'     depths for each state as listed in \emph{ghcnd_stations$STATE_MAX}.
 #'     \emph{VALUE} must be unaltered. When \emph{ELEMENT} == "WESD", the
-#'     maximum depth is multiplied by 4.2, then compared.}
+#'     maximum depth is multiplied by 5, then compared.}
 #'
 #'     \item{}{\emph{"county_max"} - Removes snow depths that exceed the maximum
 #'     depths over time for each county as listed in
 #'     \emph{county_maxes}. \emph{VALUE} must be unaltered. When \emph{ELEMENT}
-#'     == "WESD", the maximum depth is multiplied by 4.2, then compared.}
+#'     == "WESD", the maximum depth is multiplied by 5, then compared. Subsequent
+#'     \emph{VALUE}s that remain unchanged after the first is removed are also
+#'     removed.}
 #'
 #'     \item{}{\emph{"high_max"} - \emph{VALUE} should be converted to
 #'     consistent units first (such as kPa). Removes all rows where the value
@@ -55,6 +57,8 @@
 #' @param max_yearly_outliers If there are this many values for a year and
 #'   station which are marked as maximum outliers when "high_max" is part of
 #'   \emph{clean}, the values are considered as not outliers.
+#' @param county_multiplier A multiplier for county max values to allow for
+#'   more conservative "county_max" outlier removal by setting to greater than 1.
 #' @param yearly_threshold The proportion (0 to 1) or number (integer) of
 #'   observations that are removed by "county_max" or "state_max"
 #'   to consider a year corrupted and remove it from a station record.
@@ -91,9 +95,9 @@
 clean_station_data <- function(station_data, clean = "all", report = FALSE,
                                months = c(7, 8, 9), max_grouping = ID,
                                iqr_cutoff = 3, max_yearly_outliers = 5,
-                               yearly_threshold = NULL) {
+                               county_multiplier = 1, yearly_threshold = NULL) {
   `%>%` <- magrittr::`%>%`
-  wesd_mult <- 4.2
+  wesd_mult <- 5
 
   if ("high_max" %in% clean &&
        ("state_max" %in% clean || "county_max" %in% clean)) {
@@ -161,18 +165,31 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
     warning("Assuming VALUE is unaltered for cleaning via 'county_max'.")
 
     outliers <- station_data %>%
+      dplyr::mutate(MONTH = as.numeric(lubridate::month(DATE)),
+                    YEAR = as.numeric(lubridate::year(DATE)),
+                    YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR)) %>%
       dplyr::arrange(ID, DATE) %>%
-      dplyr::group_by(ID, ELEMENT) %>%
-      dplyr::mutate(DAYS = as.numeric(DATE - lag(DATE)),
-                    VDIFF = VALUE - lag(VALUE)) %>%
+      dplyr::group_by(ID, ELEMENT, YEAR) %>%
+      dplyr::mutate(DAYS = as.numeric(DATE - dplyr::lag(DATE)),
+                    VDIFF = VALUE - dplyr::lag(VALUE),
+                    VDIFF = dplyr::if_else(is.na(VDIFF), VALUE, VDIFF)) %>%
       dplyr::left_join(snowload2::ghcnd_stations %>%
                          dplyr::select(ID, STATE, COUNTY),
                        by = "ID") %>%
       dplyr::left_join(snowload2::county_maxes,
                        by = c("STATE", "COUNTY", "DAYS")) %>%
-      dplyr::filter(!is.na(COUNTY_MAX),
-                    ((ELEMENT == "SNWD" & VDIFF > COUNTY_MAX) |
-                       (ELEMENT == "WESD" & VDIFF > COUNTY_MAX * wesd_mult)))
+      dplyr::mutate(FLAG = !is.na(COUNTY_MAX) &
+                      ((ELEMENT == "SNWD" &
+                          VDIFF > COUNTY_MAX * county_multiplier) |
+                       (ELEMENT == "WESD" &
+                          VDIFF > COUNTY_MAX * wesd_mult * county_multiplier)),
+                    FLAG = dplyr::if_else(VALUE == dplyr::lag(VALUE) &
+                                            !is.na(VALUE == dplyr::lag(VALUE)),
+                                          as.logical(NA), FLAG)) %>%
+      tidyr::fill(FLAG) %>%
+      dplyr::mutate(FLAG = if_else(is.na(FLAG), FALSE, FLAG)) %>%
+      dplyr::filter(FLAG) %>%
+      dplyr::ungroup()
 
     station_data <- suppressMessages(
       dplyr::anti_join(station_data, outliers)
