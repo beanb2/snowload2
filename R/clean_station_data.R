@@ -171,6 +171,7 @@ clean_station_data <- function(station_data, clean = "all", report = FALSE,
       dplyr::arrange(ID, DATE) %>%
       dplyr::group_by(ID, ELEMENT, YEAR) %>%
       dplyr::mutate(DAYS = as.numeric(DATE - dplyr::lag(DATE)),
+                    DAYS = dplyr::if_else(is.na(DAYS), 1, DAYS),
                     VDIFF = VALUE - dplyr::lag(VALUE),
                     VDIFF = dplyr::if_else(is.na(VDIFF), VALUE, VDIFF)) %>%
       dplyr::left_join(snowload2::ghcnd_stations %>%
