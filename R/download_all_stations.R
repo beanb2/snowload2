@@ -21,6 +21,8 @@ download_all_stations <- function(directory = ".") {
   #=============================================================================
   if (directory == ".") directory <- getwd()
   directory <- path.expand(directory)
+  # Remove trailing delimiter if present.
+  directory <- gsub(directory, pattern = "/$", replacement = "")
   compressed_file <- paste0(directory, "/ghcnd_all.tar.gz")
   source <- "ftp://ftp.ncdc.noaa.gov/pub/data/ghcn/daily/ghcnd_all.tar.gz"
 
