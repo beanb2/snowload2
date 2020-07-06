@@ -8,6 +8,10 @@
 #' @param directory The directory to download the .dly files. Default is the
 #' current working directory.
 #'
+#' @param keep_compressed If TRUE, the compressed file is retained in the
+#'   specified directory. The default false removes the tar file after
+#'   unzipping.
+#'
 #' @return Uncompressed ghcnd_all folder and ghcnd-version.txt in the supplied
 #' directory. The source parameter for \code{\link{get_station_data}} and
 #' \code{\link{get_state_data}} can be set to the ghcnd_all folder.
@@ -16,7 +20,7 @@
 #'   \code{\link{get_station_data}} - get data by station.
 #'
 #' @export
-download_all_stations <- function(directory = ".") {
+download_all_stations <- function(directory = ".", keep_compressed = FALSE) {
   # Set file locations and names
   #=============================================================================
   if (directory == ".") directory <- getwd()
@@ -31,11 +35,11 @@ download_all_stations <- function(directory = ".") {
   message("Downloading ghcnd_all.tar.gz to", directory, "...")
   utils::download.file(source, compressed_file)
 
-  # Uncompress files and delete zip file
+  # Uncompress files and delete zip file (if requested)
   #=============================================================================
   message("Uncompressing downloaded station data...")
   utils::untar(compressed_file, exdir = directory)
-  file.remove(compressed_file)
+  if(!keep_compressed){file.remove(compressed_file)}
   message("All files downloaded and uncompressed.")
 }
 

@@ -4,11 +4,15 @@
 \alias{download_all_stations}
 \title{Download all .dly weather data from the web.}
 \usage{
-download_all_stations(directory = ".")
+download_all_stations(directory = ".", keep_compressed = FALSE)
 }
 \arguments{
 \item{directory}{The directory to download the .dly files. Default is the
 current working directory.}
+
+\item{keep_compressed}{If TRUE, the compressed file is retained in the
+specified directory. The default false removes the tar file after
+unzipping.}
 }
 \value{
 Uncompressed ghcnd_all folder and ghcnd-version.txt in the supplied
