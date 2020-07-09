@@ -51,6 +51,9 @@ eco3 <- rgdal::readOGR(dsn = "data-raw/eco_regions",
                        layer = "NA_CEC_Eco_Level3")
 eco3 <- sp::spTransform(eco3, sp::CRS(sp::proj4string(elev_grd)))
 
+# Remove all "0.0.0" regions.
+eco3 <- eco3[eco3$NA_L3CODE != "0.0.0", ]
+
 # Determine the largest polygon for each area and make sure we don't
 # filter at a value larger than the smallest of these.
 eco3_data <- eco3@data %>%
@@ -70,11 +73,17 @@ eco3_simp2 <- rgeos::gSimplify(eco3_sub, tol = 0.1)
 # Ironically, the non-topology preserving eco regions are considered a valid
 # topology while the topology preserving version is not. We will stick with
 # the simpler version.
-eco3_final <- SpatialPolygonsDataFrame(eco3_simp2, data = eco3_sub@data)
+eco3_final <- sp::SpatialPolygonsDataFrame(eco3_simp2, data = eco3_sub@data)
+
+# Save the simplified eco-region for future use.
+save(eco3_final, file = "data-raw/eco3_simp.Rdata")
 
 # Use the full eco-regions for the majority of the stations
 station_eco <- sp::over(ghcnd_stations_sp, eco3)
+station_eco_simp <- sp::over(ghcnd_stations_sp, eco3_final)
+
 ghcnd_stations_sp$ECO3 <- station_eco$NA_L3CODE
+ghcnd_stations_sp$ECO3_simp <- station_eco_simp$NA_L3CODE
 # Only worry about assigning stations that are within roughly 2 degrees of
 # the outer shell of eco-regions.
 eco3_buffer <- rgeos::gBuffer(eco3_final, width = 2)
@@ -84,17 +93,33 @@ ghcnd_stations_sp2 <- ghcnd_stations_sp[!is.na(station_eco_buffer) |
                                           !is.na(ghcnd_stations_sp$ECO3), ]
 
 # For the missing values, we will use the simplified eco-regions
-station_missing <- ghcnd_stations_sp2[is.na(ghcnd_stations_sp2$ECO3), ]
+tind <- is.na(ghcnd_stations_sp2$ECO3) |
+  is.na(ghcnd_stations_sp2$ECO3_simp)
+station_missing <- ghcnd_stations_sp2[tind, ]
 
 for(i in 1:length(station_missing)){
-tc <- sp::coordinates(station_missing[i, ])
-temp <- raster::crop(eco3_final, raster::extent(max(tc[1] - 3, -180), min(tc[1] + 3, 180),
-                                                max(tc[2] - 3, -90), min(tc[2] + 3, 90)))
-tdist <- geosphere::dist2Line(station_missing[i, ], temp)
-station_missing$ECO3[i] <- temp$NA_L3CODE[tdist[, "ID"]]
+  tc <- sp::coordinates(station_missing[i, ])
+  temp <- raster::crop(eco3_final, raster::extent(max(tc[1] - 3, -180), min(tc[1] + 3, 180),
+                                                  max(tc[2] - 3, -90), min(tc[2] + 3, 90)))
+  # Skip if a 3 km buffer is not sufficient for the join.
+  if(is.null(temp)){
+    next
+  }
+  tdist <- geosphere::dist2Line(station_missing[i, ], temp)
+
+  # Replace whichever value needs replacing.
+  if(is.na(station_missing$ECO3[i])){
+    station_missing$ECO3[i] <- temp$NA_L3CODE[tdist[, "ID"]]
+  }
+
+  if(is.na(station_missing$ECO3_simp[i])){
+    station_missing$ECO3_simp[i] <- temp$NA_L3CODE[tdist[, "ID"]]
+  }
 }
 
-ghcnd_stations_sp2$ECO3[is.na(ghcnd_stations_sp2$ECO3)] <- station_missing$ECO3
+ghcnd_stations_sp2$ECO3[tind] <- station_missing$ECO3
+
+ghcnd_stations_sp2$ECO3_simp[tind] <- station_missing$ECO3_simp
 
 ghcnd_stations <- as.data.frame(ghcnd_stations_sp2)
 
@@ -111,6 +136,10 @@ state_max <- read_csv("https://www.ncdc.noaa.gov/extremes/scec/records.csv") %>%
 ghcnd_stations <- ghcnd_stations %>%
   left_join(state_max)
 
+# Temporary adaptation to handle downed NOAA server.
+# temp <- snowload2::ghcnd_stations %>% dplyr::select(ID, STATE_MAX)
+# ghcnd_stations <- dplyr::left_join(ghcnd_stations, temp, by = "ID")
+
 
 
 # Add counties
@@ -118,11 +147,11 @@ ghcnd_stations <- ghcnd_stations %>%
 counties <- sf::st_as_sf(maps::map("county", plot = FALSE, fill = TRUE)) %>%
   tidyr::separate(ID, into = c("FULL_STATE", "COUNTY"), sep = ",") %>%
   dplyr::mutate(FULL_STATE = str_to_title(FULL_STATE),
-         COUNTY = str_to_title(COUNTY)) %>%
+                COUNTY = str_to_title(COUNTY)) %>%
   dplyr::left_join(data.frame(FULL_STATE = as.character(state.name),
-                       STATE = as.character(state.abb))) %>%
+                              STATE = as.character(state.abb))) %>%
   dplyr::mutate(STATE = if_else(FULL_STATE == "District Of Columbia",
-                         "DC", as.character(STATE))) %>%
+                                "DC", as.character(STATE))) %>%
   dplyr::select(-FULL_STATE)
 
 
@@ -159,8 +188,6 @@ for (state in states) {
     dplyr::select(ID, COUNTY)
 }
 
-
-
 ghcnd_stations <- ghcnd_stations %>%
   dplyr::left_join(dplyr::bind_rows(state_county_info))
 
@@ -179,11 +206,11 @@ load("other_scripts/county_max_data.RData")
 county_maxes <- county_max_data %>%
   tidyr::pivot_longer(c(-state, -county.name)) %>%
   dplyr::mutate(name = factor(name, levels = c("one.day.value", "two.day.value",
-                                        "three.day.value", "four.day.value",
-                                        "five.day.value", "six.day.value",
-                                        "seven.day.value", "eight.day.value",
-                                        "nine.day.value", "ten.day.value")),
-         DAYS = as.numeric(name)) %>%
+                                               "three.day.value", "four.day.value",
+                                               "five.day.value", "six.day.value",
+                                               "seven.day.value", "eight.day.value",
+                                               "nine.day.value", "ten.day.value")),
+                DAYS = as.numeric(name)) %>%
   dplyr::select(STATE = state, COUNTY = county.name, DAYS, COUNTY_MAX = value)
 
 

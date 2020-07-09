@@ -15,14 +15,23 @@ for(i in 1:length(tfiles)){
 
 outlier_final <- data.table::rbindlist(temp, fill = TRUE)
 
+# Read in 1952 stations and remove from list.
+t1952 <- read.csv("data-raw/1952report.csv")
+
 # Resolve differing column names
 outlier_final$OUTLIER[is.na(outlier_final$OUTLIER)] <-
   outlier_final$Outlier[is.na(outlier_final$OUTLIER)]
 
 outlier_final$Outlier <- NULL
 
-outlier_state_county <- outlier_final
-usethis::use_data(outlier_state_county)
+# Remove values that have the spooky 1952 problems
+# (there is an easier way to remove them)
+outlier_final2 <- outlier_final %>% dplyr::filter(!(is.element(ID, t1952$ID) &
+                                ELEMENT == "WESD" &
+                                lubridate::year(lubridate::as_date(DATE)) == 1952))
+
+outlier_state_county <- outlier_final2
+usethis::use_data(outlier_state_county, overwrite = TRUE)
 
 
 # Data preparation for NOAA.
