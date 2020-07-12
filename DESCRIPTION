@@ -1,7 +1,7 @@
 Package: snowload2
 Type: Package
 Title: Ground Snow Load Prediction Functions
-Version: 0.1.1.9009
+Version: 0.1.1.9010
 Authors@R: c(
   person("Brennan", "Bean", email = "brennan.bean.20@gmail.com", role = c("aut", "cre")),
   person("Jadon", "Wagstaff", email = "jadonw@gmail.com", role = "aut"))
@@ -12,6 +12,6 @@ License: GPL-3
 Encoding: UTF-8
 LazyData: true
 Imports: dplyr, fields, stats, readr, utils, lubridate, tidyr, 
-  magrittr, fitdistrplus, extRemes, evd
+  magrittr, fitdistrplus, extRemes, evd, sf
 Depends: R (>= 3.6.0)
 RoxygenNote: 7.1.1
