@@ -16,6 +16,9 @@
 #' @param buffer A buffer zone around each region in km where data is included
 #' in the data used to build models for each region. (Can be a named vector
 #' with different values for each unique 'region_id' in 'region'.)
+#' @param min_n The minimum number of observations to use when building a model.
+#' If there are not enough observations in the region and buffer, then the
+#' closest min_n observations are used. No minimum if set to 0.
 #' @param regions An sf dataframe with polygon geometry.
 #' @param region_id Optional name of column in 'regions' that contains the id
 #' that each region belongs to (no quotes). If null, it will be assumed that
@@ -51,7 +54,7 @@
 #'
 #'
 #' @export
-regional_model <- function(data, lon, lat, model_function, buffer,
+regional_model <- function(data, lon, lat, model_function, buffer, min_n = 0,
                            regions, region_id = NULL, distances = NULL,
                            progress = TRUE, keep_data = FALSE, ...) {
 
@@ -88,11 +91,10 @@ regional_model <- function(data, lon, lat, model_function, buffer,
     }
   }
 
-  # Reduce areas to places that have values within buffer
-  # ===========================================================================
   id_list <- colnames(distances)
 
-  # check buffer
+  # Check buffer
+  # ===========================================================================
   if(length(buffer) == 1) {
     buffer <- rep(buffer, length(id_list))
     names(buffer) <- id_list
@@ -101,7 +103,8 @@ regional_model <- function(data, lon, lat, model_function, buffer,
          "in the 'region_id' column of 'regions'.")
   }
 
-
+  # Reduce areas to places that have values present
+  # ===========================================================================
   keep <-  apply(distances, 2, function(x) sum(x == 0) > 0)
   id_list <- id_list[keep]
   buffer <- buffer[id_list]
@@ -121,9 +124,15 @@ regional_model <- function(data, lon, lat, model_function, buffer,
   }
 
   for (id in id_list) {
+    # get indices for building model
+    indices <- which(distances[, id] < buffer[[id]])
+    if (length(indices) < min_n) {
+      indices <- order(distances[, id])[1:min_n]
+    }
+
     # try building a model and warn if one fails
     models[[id]] <- tryCatch({
-      model_function(data[distances[, id] < buffer[[id]], ], ...)
+      model_function(data[indices, ], ...)
     },
     error = function(e) {
       warning("Error in model for region ", id, ":\n", e)
@@ -131,9 +140,7 @@ regional_model <- function(data, lon, lat, model_function, buffer,
     })
 
     # Save data row indices used for building each model if keeping data
-    if (keep_data) {
-      data_indices[[id]] <- which(distances[, id] < buffer[[id]])
-    }
+    if (keep_data) data_indices[[id]] <- indices
 
     # update progress bar
     if (progress) {
@@ -208,7 +215,8 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
   }
   distances <- distances[, id_list]
 
-  # check smooth
+  # Check smooth
+  # ===========================================================================
   if(length(smooth) == 1) {
     smooth <- rep(smooth, length(id_list))
     names(smooth) <- id_list
@@ -218,24 +226,35 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
   }
   smooth <- smooth[id_list]
 
+  # make sure all values have a distance within 'smooth' of a region
+  distances[t(apply(distances, 1, function(x) x >= smooth & x == min(x)))] <- 0
+
   # Make predictions and smooth to final output
   # ============================================================================
   output <- rep(as.numeric(NA), nrow(data))
+  weightsum <- rep(0, nrow(data))
 
-  for (i in 1:nrow(data)) {
+  # use running weighted average
+  #   \mew_1 = x_1
+  #   \mew_k = \mew_{k-1} + (w_k / \sum_1^k{w_i}) * (x_k - \mew_{k-1})
+  for (id in id_list) {
     # only consider values within smoothing range
-    indices <- distances[i, ] < smooth
-    if (sum(indices) == 0) indices <- distances[i, ] == min(distances[i, ])
-
-    # give values weights that add to 1
-    weights <- (smooth[indices] - distances[i, indices]) / smooth[indices]
-    weights <- weights / sum(weights)
+    indices <- distances[, id] < smooth[[id]]
 
     # make predictions
-    predictions <- sapply(object$models[indices], predict, data[i, ], ...)
+    preds <- predict(object$models[[id]], data[indices, ])
 
-    # calculate final value for location
-    output[i] <- sum(predictions * weights)
+    # update weights
+    weight <- smooth[[id]] - distances[indices, id]
+    weightsum[indices] <- weightsum[indices] + weight
+
+    # update output (k > 1)
+    output[indices] <- output[indices] +
+      (weight / weightsum[indices]) * (preds - output[indices])
+
+    # update output (k == 1)
+    starting <- indices & is.na(output)
+    output[starting] <- preds[starting[indices]]
   }
 
   return(output)

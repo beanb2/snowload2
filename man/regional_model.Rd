@@ -10,6 +10,7 @@ regional_model(
   lat,
   model_function,
   buffer,
+  min_n = 0,
   regions,
   region_id = NULL,
   distances = NULL,
@@ -33,6 +34,10 @@ function predict().}
 \item{buffer}{A buffer zone around each region in km where data is included
 in the data used to build models for each region. (Can be a named vector
 with different values for each unique 'region_id' in 'region'.)}
+
+\item{min_n}{The minimum number of observations to use when building a model.
+If there are not enough observations in the region and buffer, then the
+closest min_n observations are used. No minimum if set to 0.}
 
 \item{regions}{An sf dataframe with polygon geometry.}
 
