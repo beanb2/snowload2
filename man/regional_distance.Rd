@@ -4,7 +4,15 @@
 \alias{regional_distance}
 \title{Get distances between data and regions.}
 \usage{
-regional_distance(data, lon, lat, regions, region_id = NULL, progress = TRUE)
+regional_distance(
+  data,
+  lon,
+  lat,
+  regions,
+  max_dist = NULL,
+  region_id = NULL,
+  progress = TRUE
+)
 }
 \arguments{
 \item{data}{An sf data frame with longitude, latitude, and columns required
@@ -15,6 +23,9 @@ for modeling.}
 \item{lat}{Name of latitude column (no quotes).}
 
 \item{regions}{An sf dataframe with polygon geometry.}
+
+\item{max_dist}{a maximum distance that is needed for future calculations.
+(Set equal to maximum 'smooth' when predicting on new observations.)}
 
 \item{region_id}{Optional name of column in 'regions' that contains the id
 that each region belongs to (no quotes). If null, it will be assumed that

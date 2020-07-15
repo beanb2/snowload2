@@ -83,11 +83,12 @@ regional_model <- function(data, lon, lat, model_function, buffer, min_n = 0,
   if (is.null(distances)) {
     if(progress) cat("Finding distances...\n")
     if (missing(region_id)) {
-      distances <- regional_distance(data, lon, lat, regions,
-                                     progress = progress)
+      distances <- regional_distance(data, lon = lon, lat = lat,
+                                     regions = regions, progress = progress)
     } else {
-      distances <- regional_distance(data, lon, lat, regions, region_id,
-                                     progress)
+      distances <- regional_distance(data, lon = lon, lat = lat,
+                                     regions = regions, region_id = region_id,
+                                     progress = progress)
     }
   }
 
@@ -105,7 +106,7 @@ regional_model <- function(data, lon, lat, model_function, buffer, min_n = 0,
 
   # Reduce areas to places that have values present
   # ===========================================================================
-  keep <-  apply(distances, 2, function(x) sum(x == 0) > 0)
+  keep <-  apply(distances, 2, function(x) sum(x == 0 & !is.na(x)) > 0)
   id_list <- id_list[keep]
   buffer <- buffer[id_list]
   distances <- distances[, id_list]
@@ -206,15 +207,6 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
   if (!"data.frame" %in% class(data)) stop("data must be class 'data.frame'")
   id_list <- names(object$models)
 
-  # Find distances between the data and each region
-  # ============================================================================
-  if (is.null(distances)) {
-    if(progress) cat("Finding distances...\n")
-    distances <- regional_distance(data, object$lon, object$lat, object$regions,
-                                   object$region_id, progress)
-  }
-  distances <- distances[, id_list]
-
   # Check smooth
   # ===========================================================================
   if(length(smooth) == 1) {
@@ -226,20 +218,41 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
   }
   smooth <- smooth[id_list]
 
+  # Find distances between the data and each region
+  # ============================================================================
+  if (is.null(distances)) {
+    if(progress) cat("Finding distances...\n")
+    distances <- regional_distance(data, lon = object$lon, lat = object$lat,
+                                   max_dist = max(smooth),
+                                   regions = object$regions,
+                                   region_id = object$region_id,
+                                   progress = progress)
+  }
+  distances <- distances[, id_list]
+
   # make sure all values have a distance within 'smooth' of a region
-  distances[t(apply(distances, 1, function(x) x >= smooth & x == min(x)))] <- 0
+  distances[t(apply(distances, 1, function(x) {
+    x >= smooth & x == min(x, na.rm = TRUE) & !is.na(x)
+  }))] <- 0
 
   # Make predictions and smooth to final output
   # ============================================================================
   output <- rep(as.numeric(NA), nrow(data))
   weightsum <- rep(0, nrow(data))
 
+  # add progress bar
+  if (progress) {
+    cat("\nPredicting...\n")
+    pb <- txtProgressBar(min = 0, max = length(id_list), style = 3)
+    i <- 1
+  }
+
   # use running weighted average
   #   \mew_1 = x_1
   #   \mew_k = \mew_{k-1} + (w_k / \sum_1^k{w_i}) * (x_k - \mew_{k-1})
   for (id in id_list) {
     # only consider values within smoothing range
-    indices <- distances[, id] < smooth[[id]]
+    indices <- distances[, id] < smooth[[id]] & !is.na(distances[, id])
 
     # make predictions
     preds <- predict(object$models[[id]], data[indices, ])
@@ -255,7 +268,15 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
     # update output (k == 1)
     starting <- indices & is.na(output)
     output[starting] <- preds[starting[indices]]
+
+    # update progress bar
+    if (progress) {
+      setTxtProgressBar(pb, i)
+      i <- i + 1
+    }
   }
+
+  if (progress) cat("\n")
 
   return(output)
 }
