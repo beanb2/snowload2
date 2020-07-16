@@ -41,6 +41,7 @@ A data.frame where each row is a maximum for a given id and year:
     \item{}{\emph{MAX} - The maximum of the given values.}
     \item{}{\emph{MAX_N} - Number of values used to find the max.}
     \item{}{\emph{MAX_MONTHS} - Number of unique months with values.}
+    \item{}{\emph{MAX_MONTH} - Month in which the maximum was found.}
     \item{}{\emph{PRIORITIZED} - Only applies when \emph{prioritize} is not
     null. True when max value is a prioritized value, false otherwise.}
   }

@@ -31,6 +31,7 @@
 #'     \item{}{\emph{MAX} - The maximum of the given values.}
 #'     \item{}{\emph{MAX_N} - Number of values used to find the max.}
 #'     \item{}{\emph{MAX_MONTHS} - Number of unique months with values.}
+#'     \item{}{\emph{MAX_MONTH} - Month in which the maximum was found.}
 #'     \item{}{\emph{PRIORITIZED} - Only applies when \emph{prioritize} is not
 #'     null. True when max value is a prioritized value, false otherwise.}
 #'   }
@@ -80,6 +81,7 @@ yearly_maximums <- function(station_data, id, date, value,
                      MAX = max(!! value),
                      MAX_N = n(),
                      MAX_MONTHS = length(unique(MONTH)),
+                     MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
                      PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
                        prioritize)
   } else {
