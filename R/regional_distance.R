@@ -43,7 +43,7 @@ regional_distance <- function(data, lon, lat, regions, max_dist = NULL,
 
   sf_data <- sf::st_as_sf(data,
                           coords = c(lon, lat),
-                          crs = 4326)
+                          crs = sf::st_crs(regions))
 
   # Create list of regions to check (if region_id is NULL, then each polygon
   #   is a separate region)
