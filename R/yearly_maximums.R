@@ -44,14 +44,14 @@
 #'
 #' @export
 yearly_maximums <- function(station_data, id, date, value,
-                            value_type, prioritize = NULL,
+                            value_type = NULL, prioritize = NULL,
                             prioritize_threshold = list(n = 10, months = 3)) {
   # Prepare column names
   #=============================================================================
   id <- dplyr::enquo(id)
   date <- dplyr::enquo(date)
   value <- dplyr::enquo(value)
-  if (!is.null(prioritize)) value_type <- dplyr::enquo(value_type)
+  value_type <- dplyr::enquo(value_type)
 
   # Find maximums
   #=============================================================================
@@ -62,33 +62,44 @@ yearly_maximums <- function(station_data, id, date, value,
     YEAR = dplyr::if_else(MONTH > 9, YEAR + 1, YEAR)
   )
 
-  station_data <- dplyr::group_by(station_data, !! id, YEAR)
+  if (!is.null(value_type) && is.null(prioritize)){
+    station_data <- dplyr::group_by(station_data, !! id, !! value_type, YEAR)
+  }else{
+    station_data <- dplyr::group_by(station_data, !! id, YEAR)
+  }
+
+  # Add string of months.
+  month_names <- dplyr::summarise(station_data,
+                                  month_name = paste(unique(MONTH), collapse = ":"))
 
   if (!is.null(value_type) && !is.null(prioritize)) {
     station_data <- dplyr::filter(
       station_data,
       dplyr::if_else(rep(sum(!! value_type %in% prioritize) >=
-                       prioritize_threshold$n &&
-                       length(unique(MONTH[!! value_type %in% prioritize])) >=
-                       prioritize_threshold$month &&
-                       max((!! value)[!! value_type %in% prioritize]) > 0,
-                       n()),
+                           prioritize_threshold$n &&
+                           length(unique(MONTH[!! value_type %in% prioritize])) >=
+                           prioritize_threshold$month &&
+                           max((!! value)[!! value_type %in% prioritize]) > 0,
+                         n()),
                      true = !! value_type %in% prioritize,
                      false = TRUE)
     )
 
-    dplyr::summarise(station_data,
-                     MAX = max(!! value),
-                     MAX_N = n(),
-                     MAX_MONTHS = length(unique(MONTH)),
-                     MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
-                     PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
-                       prioritize)
+    tmax_final <- dplyr::summarise(station_data,
+                                   MAX = max(!! value),
+                                   MAX_N = n(),
+                                   # MAX_MONTHS = length(unique(MONTH)),
+                                   MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
+                                   PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
+                                     prioritize)
   } else {
-    dplyr::summarise(station_data,
-                     MAX = max(!! value),
-                     MAX_N = n(),
-                     MAX_MONTHS = length(unique(MONTH)))
+    tmax_final <- dplyr::summarise(station_data,
+                                   MAX = max(!! value),
+                                   MAX_N = n(),
+                                   MAX_MONTH = MONTH[which(!! value == MAX)][[1]])#,
+                                   #MAX_MONTHS = length(unique(MONTH)))
   }
+
+  tmax_final <- dplyr::left_join(tmax_final, month_names)
 }
 
