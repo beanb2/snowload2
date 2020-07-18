@@ -69,8 +69,8 @@ yearly_maximums <- function(station_data, id, date, value,
   }
 
   # Add string of months.
-  month_names <- dplyr::summarise(station_data,
-                                  month_name = paste(unique(MONTH), collapse = ":"))
+  MONTH_NAMES <- dplyr::summarise(station_data,
+                                  MONTH_NAMES = paste(unique(MONTH), collapse = ":"))
 
   if (!is.null(value_type) && !is.null(prioritize)) {
     station_data <- dplyr::filter(
@@ -88,18 +88,18 @@ yearly_maximums <- function(station_data, id, date, value,
     tmax_final <- dplyr::summarise(station_data,
                                    MAX = max(!! value),
                                    MAX_N = n(),
-                                   # MAX_MONTHS = length(unique(MONTH)),
                                    MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
+                                   MAX_MONTHS = length(unique(MONTH)),
                                    PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
                                      prioritize)
   } else {
     tmax_final <- dplyr::summarise(station_data,
                                    MAX = max(!! value),
                                    MAX_N = n(),
-                                   MAX_MONTH = MONTH[which(!! value == MAX)][[1]])#,
-                                   #MAX_MONTHS = length(unique(MONTH)))
+                                   MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
+                                   MAX_MONTHS = length(unique(MONTH)))
   }
 
-  tmax_final <- dplyr::left_join(tmax_final, month_names)
+  tmax_final <- dplyr::left_join(tmax_final, MONTH_NAMES)
 }
 
