@@ -201,6 +201,16 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
     summary <- suppressMessages(dplyr::left_join(summary, prioritized))
   }
 
+  # In alternative summary, count the number of WESD values
+  # used to compute maximums.
+  if ("ELEMENT" %in% names(station_data)) {
+    prioritized <- dplyr::summarise(
+      station_data,
+      PRIORITIZED = sum(ELEMENT == "WESD") / sum(!is.na(!! values))
+    )
+    summary <- suppressMessages(dplyr::left_join(summary, prioritized))
+  }
+
   # Fit distributions
   #=============================================================================
   if (missing(shape)) {
