@@ -43,7 +43,7 @@
 #'
 #'
 #' @export
-yearly_maximums <- function(station_data, id, date, value,
+yearly_maximums <- function(station_data, id, date, value, ratio = NULL,
                             value_type = NULL, prioritize = NULL,
                             prioritize_threshold = list(n = 10, months = 3)) {
   # Prepare column names
@@ -52,6 +52,11 @@ yearly_maximums <- function(station_data, id, date, value,
   date <- dplyr::enquo(date)
   value <- dplyr::enquo(value)
   value_type <- dplyr::enquo(value_type)
+  if(!is.null(ratio)){
+    ratio <- dplyr::enquo(ratio)
+  }else{
+    ratio <- 1
+  }
 
   # Find maximums
   #=============================================================================
@@ -90,6 +95,7 @@ yearly_maximums <- function(station_data, id, date, value,
                                    MAX_N = n(),
                                    MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
                                    MAX_MONTHS = length(unique(MONTH)),
+                                   RATIO = (!! ratio)[which(!! value == MAX)])[[1]],
                                    PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
                                      prioritize)
   } else {
@@ -97,8 +103,11 @@ yearly_maximums <- function(station_data, id, date, value,
                                    MAX = max(!! value),
                                    MAX_N = n(),
                                    MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
-                                   MAX_MONTHS = length(unique(MONTH)))
+                                   MAX_MONTHS = length(unique(MONTH)),
+                                   RATIO = (!! ratio)[which(!! value == MAX)])[[1]])
   }
+
+
 
   tmax_final <- dplyr::left_join(tmax_final, MONTH_NAMES)
 }
