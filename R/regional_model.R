@@ -258,7 +258,7 @@ predict.regional_model <- function(object, data, smooth, distances = NULL,
     preds <- predict(object$models[[id]], data[indices, ])
 
     # update weights
-    weight <- smooth[[id]] - distances[indices, id]
+    weight <- ((smooth[[id]] - distances[indices, id]) / smooth[[id]])^2
     weightsum[indices] <- weightsum[indices] + weight
 
     # update output (k > 1)
