@@ -95,7 +95,7 @@ yearly_maximums <- function(station_data, id, date, value, ratio = NULL,
                                    MAX_N = n(),
                                    MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
                                    MAX_MONTHS = length(unique(MONTH)),
-                                   RATIO = (!! ratio)[which(!! value == MAX)])[[1]],
+                                   RATIO = (!! ratio)[which(!! value == MAX)][[1]],
                                    PRIORITIZED = (!! value_type)[which.max(!! value)] %in%
                                      prioritize)
   } else {
@@ -104,7 +104,7 @@ yearly_maximums <- function(station_data, id, date, value, ratio = NULL,
                                    MAX_N = n(),
                                    MAX_MONTH = MONTH[which(!! value == MAX)][[1]],
                                    MAX_MONTHS = length(unique(MONTH)),
-                                   RATIO = (!! ratio)[which(!! value == MAX)])[[1]])
+                                   RATIO = (!! ratio)[which(!! value == MAX)][[1]])
   }
 
 

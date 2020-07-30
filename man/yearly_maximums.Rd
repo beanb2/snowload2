@@ -9,6 +9,7 @@ yearly_maximums(
   id,
   date,
   value,
+  ratio = NULL,
   value_type = NULL,
   prioritize = NULL,
   prioritize_threshold = list(n = 10, months = 3)
