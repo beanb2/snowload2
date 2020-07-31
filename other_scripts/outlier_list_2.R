@@ -23,7 +23,7 @@ get_files <- function(path, pattern){
 
 # Step 1: Save the no confidence stations.
 #=============================================================================
-no_confidence_stations2 <- get_files(path = "data-raw/outlier_notes/distribution_outliers/",
+no_confidence_stations <- get_files(path = "data-raw/outlier_notes/distribution_outliers/",
                                      pattern = "confidence.csv")[, 1]
 
 usethis::use_data(no_confidence_stations, overwrite = TRUE)
