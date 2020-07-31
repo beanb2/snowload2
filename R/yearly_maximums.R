@@ -52,9 +52,9 @@ yearly_maximums <- function(station_data, id, date, value, ratio = NULL,
   date <- dplyr::enquo(date)
   value <- dplyr::enquo(value)
   value_type <- dplyr::enquo(value_type)
-  if(!is.null(ratio)){
-    ratio <- dplyr::enquo(ratio)
-  }else{
+  ratio <- dplyr::enquo(ratio)
+
+  if(is.null(ratio)){
     ratio <- 1
   }
 
