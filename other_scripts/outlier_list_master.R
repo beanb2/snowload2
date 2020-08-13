@@ -128,16 +128,45 @@ salam_last$TYPE <- "OR_WA_check"
 outlier_last_minute <- dplyr::bind_rows(miranda_last, salam_last)
 #=============================================================================
 
+# 5: Outliers found by site-specific investigations by Scout in
+# - Alaska
+# - national scatterplot checks (I think)
+# - Amboy, IL
+# - Colorado eastern plains
+# - The border of North and South Dakota (need to add)
+#=============================================================================
+# Alaskan Outliers.
+scout_ak <- read.csv("data-raw/outlier_notes/outliers_ak.csv")
+
+# Can't remember exactly which investigation this was from, but I think it was
+# outliers Scout found after checking out scatterplots of the data.
+scout_1 <- read.csv("data-raw/outlier_notes/scouts_outliers.csv")
+
+# Scout's investigation of Amboy, IL at the request of karl.r.pennings@imegcorp.com
+scout_2 <- read.csv("data-raw/outlier_notes/AMBOY_outliers.csv")
+
+# Scouts investigation of the Eastern Plains of Colorado, with a focus on the
+# Denver area.
+scout_3 <- read.csv("data-raw/outlier_notes/stations_1_outliers.csv")
+
+scout_final_checks <- dplyr::bind_rows(scout_ak, scout_1,
+                                       scout_2, scout_3)
+
+scout_final_checks$TYPE <- "Scout_Final_Investigations"
+#=============================================================================
+
 # Save the results
 #=============================================================================
 outlier_combined <- data.table::rbindlist(list(outlier_state_county,
                                                outlier_distribution,
                                                outlier_state_checks,
-                                               outlier_last_minute)) %>%
+                                               outlier_last_minute,
+                                               scout_final_checks)) %>%
   dplyr::mutate(YEAR = lubridate::year(lubridate::as_date(DATE))) %>%
-  dplyr::filter(YEAR != 1952 | ELEMENT != "WESD")
+  dplyr::filter(YEAR != 1952 | ELEMENT != "WESD") %>%
+  dplyr::distinct()
 
-usethis::use_data(outlier_combined)
+usethis::use_data(outlier_combined, overwrite = TRUE)
 #=============================================================================
 
 
