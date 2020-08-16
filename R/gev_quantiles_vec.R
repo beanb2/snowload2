@@ -13,7 +13,8 @@
 #' @export
 qgev <- function(p, loc = 0, scale = 1, shape = 0){
   if(max(p) > 1 || min(p) < 0){
-    stop("Quantiles must be between 0 and 1")
+    warning("Quantiles must be between 0 and 1")
+    return(NA)
   }
 
   # Set a switch function based on the value of the shape parameter.
