@@ -90,6 +90,18 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
       stats::qlnorm(p = p, meanlog = par1, sdlog = par2)
     }
 
+  } else if(distr == "exp"){
+    # Exponential
+    if (method %in% c("mle", "mme")) {
+      fit <- function(x, ...) {
+        fitdistrplus::fitdist(x, distr = "exp", method = method,
+                              keepdata = FALSE, ...)$estimate
+      }
+    } else error("No method", method, "for distr", distr)
+
+    q_function <- function(p, par1) {
+      stats::qexp(p = p, rate = par1)
+    }
   } else if (distr == "gamma") {
 
 
@@ -127,9 +139,15 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
     if (method == "mle") {
       fit <- function(x, shape, ...) {
         if (missing(shape)) {
-          evd::fgev(x, std.err = FALSE, ...)$param
+          temp <- evd::fgev(x, std.err = FALSE, ...)
         } else {
-          evd::fgev(x, std.err = FALSE, shape = shape, ...)$param
+          temp <- evd::fgev(x, std.err = FALSE, shape = shape, ...)
+        }
+
+        if(temp$convergence != "successful"){
+          return(c(NA, NA, NA))
+        }else{
+          return(temp$param)
         }
       }
     } else if (method == "lmoments") {
@@ -175,7 +193,11 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
 
     p <- (.98 - zero)/(1-zero)
     if (all(is.na(par3))) {
-      out[keep] <- f(p, par1, par2)
+      if(all(is.na(par2))){
+        out[keep] <- f(p, par1)
+      }else{
+        out[keep] <- f(p, par1, par2)
+      }
     } else {
       out[keep] <- f(p, par1, par2, par3)
     }
