@@ -4,7 +4,7 @@
 \alias{qgev}
 \title{GEV Distribution Value Estimation From Quantile}
 \usage{
-qgev(p, loc = 0, scale = 1, shape = 0)
+qgev(p, loc = 0, scale = 1, shape = 0, tol = 1e-06)
 }
 \arguments{
 \item{p}{A quantile between 0 and 1, may be a vector.}

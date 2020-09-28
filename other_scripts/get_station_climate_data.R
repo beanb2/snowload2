@@ -12,6 +12,9 @@ stations <- as.data.frame(snowload2::ghcnd_stations)
 prism_final <- raster::brick("C:/Users/Brennan/Desktop/snowload_data_master/final_prism_grid_800m_new_elevation.grd")
 prism_c <- raster::brick("C:/Users/Brennan/Desktop/snowload_data_master/final_prism_grid_4km.grd")
 
+# Read in the Alaskan prism grids (~800m resolution)
+prism_final_ak <- raster::brick("C:/Users/Brennan/Desktop/snowload_data_master/final_prism_grid_800m_new_elevation_ak.grd")
+
 # Read in the climateNA info (4km resolution)
 climateNA_final <- raster::brick("C:/Users/Brennan/Desktop/snowload_data_master/climateNA.grd")
 
@@ -38,6 +41,15 @@ shoreline_crop <- sp::spTransform(shoreline_crop,
 shoreline2_crop <- sp::spTransform(shoreline2_crop,
                                   CRSobj = sp::CRS(raster::projection(prism_final)))
 
+# Retain islands for Alaska for better precision here...not very relevant for
+# the lower 48
+ak_map <- rgdal::readOGR(dsn = "data-raw/ak_shapefile",
+                         layer = "tl_2016_02_cousub")
+ak_map <- sp::spTransform(ak_map,
+                          CRSobj = sp::CRS(sp::proj4string(shoreline_crop)))
+shoreline_crop_ak <- raster::crop(shoreline_crop, ak_map)
+shoreline_crop_ak <- shoreline_crop_ak[shoreline_crop_ak$area < 1e07, ]
+
 # My guess is that area is provided in km^2. However, knowing this is not
 # necessary as long as we can retain only the largest lakes in the dataset.
 # We are assuming that the great lakes count as "coasts" in the distance to
@@ -55,11 +67,11 @@ shoreline_crop <- shoreline_crop[shoreline_crop$area > 1e07 &
 # Confirm that the final shapefiles look as expected.
 sp::plot(shoreline_crop)
 sp::plot(shoreline2_crop, col = "blue", add = TRUE)
+sp::plot(shoreline_crop_ak, col = "red", add = TRUE)
 #=============================================================================
 
 # Step 2: Obtain distance to coast calculations.
 #=============================================================================
-
 # Create a spatial data frame
 sp::coordinates(stations) <- c("LONGITUDE", "LATITUDE")
 sp::proj4string(stations) <- sp::proj4string(prism_final)
@@ -69,10 +81,17 @@ sp::proj4string(stations) <- sp::proj4string(prism_final)
 Sys.time()
 test <- geosphere::dist2Line(p = stations, line = shoreline_crop)
 test2 <- geosphere::dist2Line(p = stations, line = shoreline2_crop)
+test3 <- geosphere::dist2Line(p = stations, line = shoreline_crop_ak)
 Sys.time()
 
+# If a "great lake" or "Alaskan Island" shoreline is closer, use
+# that in favor of the continental US shoreline.
 test_final <- test[, 1]
 test_final[test_final > test2[, 1]] <- test2[test_final > test2[, 1], 1]
+test_final[test_final > test3[, 1]] <- test3[test_final > test3[, 1], 1]
+
+# Determine the number of stations for which the new coast values
+# are actually used.
 
 # Retain only the shortest distance for each location.
 stations$dist2coast <- test_final
@@ -86,11 +105,23 @@ prism_extract <- raster::extract(prism_final, stations,
 # Only retain the relevant variables in a consistent order.
 prism_extract <- prism_extract %>%
   dplyr::select(PPTWT, MCMT, MWMT, TD, MAT, ELEVATION_PRISM = ELEVATION)
-
-
 #==============================================================================
 
-# Step 3: Obtain PRISM Variables
+# Step 4: Obtain Alaskan PRISM Variables
+#==============================================================================
+stations_ak <- stations
+stations_ak <- sp::spTransform(stations, CRSobj = sp::CRS(sp::proj4string(prism_final_ak)))
+
+prism_extract_ak <- raster::extract(prism_final_ak, stations_ak,
+                                 method = "bilinear", df = TRUE)
+
+# Only retain the relevant variables in a consistent order.
+prism_extract_ak <- prism_extract_ak %>%
+  dplyr::select(PPTWT, MCMT, MWMT, TD, MAT, ELEVATION_PRISM = ELEVATION)
+
+prism_extract2 <- prism_extract
+prism_extract2[is.na(prism_extract$PPTWT), ] <-
+  prism_extract_ak[is.na(prism_extract$PPTWT), ]
 #==============================================================================
 
 
@@ -104,25 +135,36 @@ temper <- temper %>%
   dplyr::mutate(ELEVATION_PRISM = NA)
 
 # Replace missing PRISM predictions with climateNA predictions.
-prism_extract2 <- prism_extract
-prism_extract2[is.na(prism_extract$ELEVATION_PRISM), ] <- temper[is.na(prism_extract$ELEVATION_PRISM), ]
+prism_extract3 <- prism_extract2
+prism_extract3[is.na(prism_extract2$PPTWT), ] <-
+  temper[is.na(prism_extract2$PPTWT), ]
 
-# For locations falling outside the grid, use a 10km buffer for 4km PRISM.
-# Anything that still does not match gets thrown out.
-# (4km grid used for speed since we are already averaging)
-stations_sub <- stations[is.na(prism_extract2$PPTWT), ]
-buffer_check <- raster::extract(prism_c, stations_sub,
-                          buffer = 5000, fun = mean)
+# For locations falling outside the grid, assign to the
+# nearest neighbor grid on a 4km resolution.
+tst <- subset(stations, is.na(prism_extract3$PPTWT))
+prism_points <- raster::rasterToPoints(prism_c, spatial = TRUE)
+
+# While we are at it, reassign the distance to coast to be equal to 1 meter.
+# This is under the assumption that things falling outside of the grid must be
+# an island location.
+stations$dist2coast[is.na(prism_extract3$PPTWT)] <- 1
+
+tdist <- sp::spDists(tst, prism_points)
+tind <- apply(tdist, 1, which.min)
+new_points <- prism_points[tind, ]
+new_points$ELEVATION <- 0
+
+new_points <- as.data.frame(new_points) %>%
+  dplyr::select(PPTWT, MCMT, MWMT, TD, MAT, ELEVATION_PRISM = ELEVATION)
 
 # Replace missing values with the buffer values.
-prism_extract3 <- prism_extract2
-prism_extract3[is.na(prism_extract2$PPTWT), ] <- buffer_check[is.na(prism_extract2$PPTWT), ]
+prism_extract4 <- prism_extract3
+prism_extract4[is.na(prism_extract3$PPTWT), ] <- new_points
 
 ghcnd_stations_climate <- dplyr::bind_cols(as.data.frame(stations),
-                                           as.data.frame(temper[, -1]))
-ghcnd_stations_climate <- dplyr::select(ghcnd_stations_climate,
-                                        ID, dist2coast, TD, FFP, MCMT,
-                                        MWMT, PPTWT, RH, MAT)
+                                           prism_extract4)
+
+usethis::use_data(ghcnd_stations_climate, overwrite = TRUE)
 #==============================================================================
 
 

@@ -11,11 +11,14 @@
 #' @return A vector of values from the distribution based on the
 #'   the provided quantiles.
 #' @export
-qgev <- function(p, loc = 0, scale = 1, shape = 0){
+qgev <- function(p, loc = 0, scale = 1, shape = 0, tol = 1e-6){
   if(max(p) > 1 || min(p) < 0){
-    warning("Quantiles must be between 0 and 1")
-    return(NA)
+    warning("Quantiles must be between 0 and 1,
+            replacing with tol and/or 1-tol")
   }
+
+  # Restrict the quantiles (assuming that the user knows what they are doing).
+  p <- pmax(pmin(1-tol, p), tol)
 
   # Set a switch function based on the value of the shape parameter.
   switch <- as.numeric(abs(shape) < 1e-8)
