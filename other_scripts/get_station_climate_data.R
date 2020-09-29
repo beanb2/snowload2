@@ -109,7 +109,6 @@ prism_extract <- prism_extract %>%
 
 # Step 4: Obtain Alaskan PRISM Variables
 #==============================================================================
-stations_ak <- stations
 stations_ak <- sp::spTransform(stations, CRSobj = sp::CRS(sp::proj4string(prism_final_ak)))
 
 prism_extract_ak <- raster::extract(prism_final_ak, stations_ak,

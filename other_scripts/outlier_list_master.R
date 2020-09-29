@@ -140,7 +140,8 @@ scout_ak <- read.csv("data-raw/outlier_notes/outliers_ak.csv")
 
 # Can't remember exactly which investigation this was from, but I think it was
 # outliers Scout found after checking out scatterplots of the data.
-scout_1 <- read.csv("data-raw/outlier_notes/scouts_outliers.csv")
+# Remove spurious row name column.
+scout_1 <- read.csv("data-raw/outlier_notes/scouts_outliers.csv")[, -1]
 
 # Scout's investigation of Amboy, IL at the request of karl.r.pennings@imegcorp.com
 scout_2 <- read.csv("data-raw/outlier_notes/AMBOY_outliers.csv")
@@ -164,12 +165,15 @@ outlier_combined <- data.table::rbindlist(list(outlier_state_county,
                                                scout_final_checks)) %>%
   dplyr::mutate(YEAR = lubridate::year(lubridate::as_date(DATE))) %>%
   dplyr::filter(YEAR != 1952 | ELEMENT != "WESD") %>%
-  dplyr::distinct()
+  dplyr::distinct(ID, DATE, ELEMENT, VALUE, .keep_all = TRUE)
 
 usethis::use_data(outlier_combined, overwrite = TRUE)
 #=============================================================================
 
-
+outlier_combined %>%
+  dplyr::filter(OUTLIER > 0) %>%
+  dplyr::group_by(ID, YEAR) %>%
+  tally(.)
 
 
 # Recent changes (07-31-2020) only retain stations with at least 5 years of
