@@ -9,10 +9,11 @@ yearly_maximums(
   id,
   date,
   value,
-  ratio = NULL,
-  value_type = NULL,
-  prioritize = NULL,
-  prioritize_threshold = list(n = 10, months = 3)
+  ratio,
+  value_type,
+  prioritize,
+  prioritize_threshold = list(n = 10, months = 3),
+  monthly_maximums = FALSE
 )
 }
 \arguments{
@@ -23,7 +24,9 @@ variables.}
 
 \item{date}{Column containing the observation date.}
 
-\item{value}{Column containing the observations to maximize}
+\item{value}{Column containing the observations to maximize.}
+
+\item{ratio}{Column containing the reatio used when converting maximums.}
 
 \item{value_type}{Optional column containing the value types.}
 
@@ -33,6 +36,9 @@ variables.}
 the prioritized value containing \emph{n} - the minimum number of
 observations and \emph{months} - the minimum number of months that must have
 a value.}
+
+\item{monthly_maximums}{When \emph{station_data} is the output of
+\code{\link{monthly_maximums}}, set this parameter to TRUE.}
 }
 \value{
 A data.frame where each row is a maximum for a given id and year:
@@ -43,6 +49,8 @@ A data.frame where each row is a maximum for a given id and year:
     \item{}{\emph{MAX_N} - Number of values used to find the max.}
     \item{}{\emph{MAX_MONTHS} - Number of unique months with values.}
     \item{}{\emph{MAX_MONTH} - Month in which the maximum was found.}
+    \item{}{\emph{RATIO} - Only applies when \emph{ratio} is not
+    null. The ratio used when converting the maximum.}
     \item{}{\emph{PRIORITIZED} - Only applies when \emph{prioritize} is not
     null. True when max value is a prioritized value, false otherwise.}
   }
@@ -67,4 +75,7 @@ x <- get_station_data(ghcnd_stations$ID[10000],
 yearly_maximums(x, ID, DATE, VALUE)
 
 
+}
+\seealso{
+\code{\link{monthly_maximums}} - get maxes by month.
 }

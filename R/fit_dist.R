@@ -55,12 +55,9 @@
 #' @export
 fit_dist <- function(station_data, id, values, distr, method = "mle",
                      tail = 1, shape, ...) {
-  # Prepare column names and prepare data
+  # Prepare data
   #=============================================================================
-  id <- dplyr::enquo(id)
-  values <- dplyr::enquo(values)
-
-  station_data <- dplyr::group_by(station_data, !! id)
+  station_data <- dplyr::group_by(station_data, {{id}})
 
 
   # Choose functions for fit and q_function
@@ -182,10 +179,10 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
   }
 
   event50 <- function(par1, par2, par3, zero, f) {
+    if (all(is.na(par1))) {return(as.numeric(NA))}
     out <- rep(as.numeric(NA), length(par1))
-    out[zero == 1] <- 0
-    keep <- !is.na(par1)
-    if (sum(keep) == 0) {return(as.numeric(NA))}
+    out[zero >= .98] <- 0
+    keep <- !is.na(par1) & zero < 0.98
     par1 <- par1[keep]
     par2 <- par2[keep]
     par3 <- par3[keep]
@@ -211,14 +208,14 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
   summary <- dplyr::summarise(
     station_data,
     DISTR = distr,
-    NFIT = sum(!is.na(!! values)),
-    PROP_ZERO = sum(!! values == 0, na.rm = TRUE) / NFIT,
+    NFIT = sum(!is.na({{values}})),
+    PROP_ZERO = sum({{values}} == 0, na.rm = TRUE) / NFIT,
   )
 
   if ("PRIORITIZED" %in% names(station_data)) {
     prioritized <- dplyr::summarise(
       station_data,
-      PRIORITIZED = sum(PRIORITIZED) / sum(!is.na(!! values))
+      PRIORITIZED = sum(PRIORITIZED) / sum(!is.na({{values}}))
     )
     summary <- suppressMessages(dplyr::left_join(summary, prioritized))
   }
@@ -228,7 +225,7 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
   if ("ELEMENT" %in% names(station_data)) {
     prioritized <- dplyr::summarise(
       station_data,
-      PRIORITIZED = sum(ELEMENT == "WESD") / sum(!is.na(!! values))
+      PRIORITIZED = sum(ELEMENT == "WESD") / sum(!is.na({{values}}))
     )
     summary <- suppressMessages(dplyr::left_join(summary, prioritized))
   }
@@ -238,13 +235,12 @@ fit_dist <- function(station_data, id, values, distr, method = "mle",
   if (missing(shape)) {
     fits <- dplyr::summarise(
       station_data,
-      PAR1 = fit_wrap(!! values, fit, ...)
+      PAR1 = fit_wrap({{values}}, fit, ...)
     )
   } else {
-    shape <- dplyr::enquo(shape)
     fits <- dplyr::summarise(
       station_data,
-      PAR1 = fit_wrap(!! values, fit, shape = dplyr::first(!! shape), ...)
+      PAR1 = fit_wrap({{values}}, fit, shape = dplyr::first({{shape}}), ...)
     )
   }
 
