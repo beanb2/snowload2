@@ -126,3 +126,19 @@
 
 
 
+#' Alternate outliers as verified through secondary manual checks.
+#'
+#'
+#'  \describe{
+#'  \item{ID}{The GHCND station identifier.}
+#'  \item{DATE}{Day in yyyy-mm-dd format.}
+#'  \item{ELEMENT}{Value indicating water equivalent of snow on the ground
+#'    (WESD) or snow depth (SNWD).}
+#'  \item{VALUE}{Either WESD in tenths of millimeters or SNWD in millimeters.}
+#'  \item{OUTLIER}{Manual determination if the value was, in fact, and outlier.
+#'  1 - yes, 0 - no, -1 - values removed for coverage issue (all zero values).}
+#'  }
+"outlier_combined_alt"
+
+
+
