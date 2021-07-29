@@ -12,9 +12,23 @@ library(tidyverse)
 tfiles <- list.files(path = "data-raw/outlier_notes/state_county_outliers",
                      pattern = "Outliers.csv", full.names = TRUE)
 
+tstates <- gsub("^.*/", "", tfiles)
+tstates <- gsub("_.*$", "", tstates)
+
+scout_state <- state.abb[c(1, 4:6, 12, 15:16, 23, 25:28,
+                           31, 37, 43:44, 47, 50)]
+
+sum(is.element(tstates, scout_state))
+
 temp <- vector("list", length(tfiles))
 for(i in 1:length(tfiles)){
   temp[[i]] <- read.csv(tfiles[i])
+
+  if(is.element(tstates[i], scout_state)){
+    temp[[i]]$name <- "Scout"
+  }else{
+    temp[[i]]$name <- "Miranda"
+  }
 }
 
 outlier_final <- data.table::rbindlist(temp, fill = TRUE)
@@ -46,6 +60,21 @@ get_files <- function(path, pattern){
   temp <- vector("list", length(tfiles))
   for(i in 1:length(tfiles)){
     temp[[i]] <- read.csv(tfiles[i])
+
+    temp[[i]]$name <- "unknown"
+
+    if(regexpr("[Ss][Oo][Uu][Tt]", tfiles[i])){
+      temp[[i]]$name <- "Scout"
+    }
+
+    if(regexpr("[Ss][Aa][Ll][Aa][Mm]", tfiles[i])){
+      temp[[i]]$name <- "Salam"
+    }
+
+    if(regexpr("[Mm][Ii][Rr][Aa][Nn][Dd][Aa]", tfiles[i])){
+      temp[[i]]$name <- "Miranda"
+    }
+
 
     if(is.na(strptime(temp[[i]]$DATE[1], "%Y-%m-%d"))){
       temp[[i]]$DATE <- strptime(temp[[i]]$DATE, "%m/%d/%Y")
@@ -105,7 +134,9 @@ outlier_distribution <- dplyr::bind_rows(heavy_outlier, left_skew_outlier,
 # outliers. The observations in this script were deemed "obvious" outliers
 # that required further searching.
 scout <- read.csv("data-raw/outlier_notes/scout_state_level_outlier.csv")
+scout$name <- "Scout"
 miranda <- read.csv("data-raw/outlier_notes/miranda_state_level_outlier.csv")
+miranda$name <- "Miranda"
 
 final <- dplyr::bind_rows(scout, miranda)
 
@@ -118,12 +149,15 @@ outlier_state_checks$TYPE <- "state_scatter"
 #=============================================================================
 # Read in Miranda's additional "heavy tail" outliers.
 miranda_last <- read.csv("data-raw/outlier_notes/outlier_check_07212020.csv")
+miranda_last$name <- "Miranda"
 miranda_last$TYPE <- "heavy_tail_2"
 
 salam_last <- read.csv("data-raw/outlier_notes/salam_ORWA_outlier.csv")
 salam_last$DATE <- strptime(salam_last$DATE, "%m/%d/%Y")
 salam_last$DATE <- as.character(format(salam_last$DATE, "%Y-%m-%d"))
+salam_last$name <- "Salam"
 salam_last$TYPE <- "OR_WA_check"
+
 
 outlier_last_minute <- dplyr::bind_rows(miranda_last, salam_last)
 #=============================================================================
@@ -153,29 +187,29 @@ scout_3 <- read.csv("data-raw/outlier_notes/stations_1_outliers.csv")
 scout_final_checks <- dplyr::bind_rows(scout_ak, scout_1,
                                        scout_2, scout_3)
 
+scout_final_checks$name <- "Scout"
 scout_final_checks$TYPE <- "Scout_Final_Investigations"
 #=============================================================================
 
 # Save the results
 #=============================================================================
+# 7-29-2021: This line inadvertently removes values where there was a discrepancy
+# in the outlier flags. outlier_list_master in the reproducible version fixes
+# this problem
 outlier_combined <- data.table::rbindlist(list(outlier_state_county,
                                                outlier_distribution,
                                                outlier_state_checks,
                                                outlier_last_minute,
-                                               scout_final_checks)) %>%
+                                               scout_final_checks), fill = TRUE) %>%
   dplyr::mutate(YEAR = lubridate::year(lubridate::as_date(DATE))) %>%
   dplyr::filter(YEAR != 1952 | ELEMENT != "WESD") %>%
-  dplyr::arrange(ID, DATE, dplyr::desc(abs(OUTLIER))) %>%
   dplyr::distinct(ID, DATE, ELEMENT, VALUE, .keep_all = TRUE)
 
-usethis::use_data(outlier_combined, overwrite = TRUE)
+
+
+
+save(outlier_combined, file = "data-raw/outliers_with_names_scout.RData")
 #=============================================================================
-
-outlier_combined %>%
-  dplyr::filter(OUTLIER > 0) %>%
-  dplyr::group_by(ID, YEAR) %>%
-  tally(.)
-
 
 # Recent changes (07-31-2020) only retain stations with at least 5 years of
 # record passing coverage filters. This eliminates the need for the no
