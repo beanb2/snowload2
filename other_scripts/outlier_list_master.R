@@ -150,8 +150,16 @@ scout_2 <- read.csv("data-raw/outlier_notes/AMBOY_outliers.csv")
 # Denver area.
 scout_3 <- read.csv("data-raw/outlier_notes/stations_1_outliers.csv")
 
+### UPDATE 9-28-2021:
+# The 8-13-2020 version of the outlier file included
+# additional checks by scout that were left out of subsequent updates. In order
+# to stay true to the original outlier list used to create the 9-1-2020 maps,
+# we need to add these outliers to the list.
+scout_4 <- read.csv("data-raw/outlier_notes/stations_2_outliers.csv")
+
 scout_final_checks <- dplyr::bind_rows(scout_ak, scout_1,
-                                       scout_2, scout_3)
+                                       scout_2, scout_3, scout_4)
+### END UPDATE
 
 scout_final_checks$TYPE <- "Scout_Final_Investigations"
 #=============================================================================
