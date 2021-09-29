@@ -104,6 +104,40 @@
 #'  }
 "outlier_combined"
 
+#' Removed values flagged by state and county max filters - Scout Only Update.
+#'
+#' In an effort to employ a consistent outlier detection standard, Scout Jarman
+#'   did a comprehensive check of all stations included in the outlier_combined
+#'   daaset and reflagged values according to his standard.
+#'
+#' @format A data frame with 742,611 observations and 7 variables:
+#'
+#'  \describe{
+#'  \item{ID}{The GHCND station identifier.}
+#'  \item{DATE}{Day in yyyy-mm-dd format.}
+#'  \item{ELEMENT}{Value indicating water equivalent of snow on the ground
+#'    (WESD) or snow depth (SNWD).}
+#'  \item{VALUE}{Either WESD in tenths of millimeters or SNWD in millimeters.}
+#'  \item{FLAGGED}{0 - Value not flagged but manually detected during
+#'  outlier search. 1 - Value flagged for exceeding state extreme snow depth.
+#'  2- Value flagged for exceeding county extreme snowfall.}
+#'  \item{OUTLIER}{Manual determination if the value was, in fact, and outlier.
+#'  1 - yes, 0 - no, -1 - values removed for coverage issue (all zero values).}
+#'  \item{TYPE}{Method in which outlier was detected. Options include:
+#'  \itemize{
+#'  \item state_flag: value was flagged for exceeding state snow depth or county snowfall records.
+#'  \item heavy_tail: observations were investigated from a distribution with an unusually large, positive shape parameter.
+#'  \item left_skew: observations were investigated from a distribution with an unusually large, negative shape parameter.
+#'  \item region_shape: observations were investigated from a distribution with a shape parameter notably different than the
+#'  shape parameter predicted via regional smoothing.
+#'  \item yr50: observations were investigated because the resulting 50 year event was very different than the maximum max observation.
+#'  \item state_scatter: observations were identified as having 50 year events significantly different from other observations in the same state.
+#'  \item heavy_tail_2: observations with large, positive shape parameters as well as a maximum max 4 times larger than the estimated 50 year event.
+#'  \item OR_WA_check: observations from a region-level investigation of observations in coastal Oregon and Washington.
+#'  }}
+#'  }
+"outlier_combined_alt"
+
 
 #' Max 1,2,...,10 day snowfall totals for each county.
 #'

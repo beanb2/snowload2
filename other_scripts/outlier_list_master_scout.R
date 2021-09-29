@@ -184,8 +184,19 @@ scout_2 <- read.csv("data-raw/outlier_notes/AMBOY_outliers.csv")
 # Denver area.
 scout_3 <- read.csv("data-raw/outlier_notes/stations_1_outliers.csv")
 
+
+
+### 9-29-2021: This list of outliers excludes outliers that Scout checked which
+# are contained in the file "stations_2_outliers.csv". This has since been
+# corrected. The original omission is OK because all
+# those values were originally checked by scout and the alternative list was
+# an opportunity for Scout to confirm outliers he had not personally checked.
+
+scout_4 <- read.csv("data-raw/outlier_notes/stations_2_outliers.csv")
+
 scout_final_checks <- dplyr::bind_rows(scout_ak, scout_1,
-                                       scout_2, scout_3)
+                                       scout_2, scout_3, scout_4)
+### END UPDATE
 
 scout_final_checks$name <- "Scout"
 scout_final_checks$TYPE <- "Scout_Final_Investigations"
@@ -203,9 +214,8 @@ outlier_combined <- data.table::rbindlist(list(outlier_state_county,
                                                scout_final_checks), fill = TRUE) %>%
   dplyr::mutate(YEAR = lubridate::year(lubridate::as_date(DATE))) %>%
   dplyr::filter(YEAR != 1952 | ELEMENT != "WESD") %>%
+  dplyr::arrange(ID, DATE, dplyr::desc(abs(OUTLIER))) %>%
   dplyr::distinct(ID, DATE, ELEMENT, VALUE, .keep_all = TRUE)
-
-
 
 
 save(outlier_combined, file = "data-raw/outliers_with_names_scout.RData")
